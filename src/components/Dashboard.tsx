@@ -127,7 +127,7 @@ export const Dashboard = () => {
       return;
     }
     const epoch = Math.floor(Date.now() / 1000);
-    clientRef.current.publish("kuytoojung/cmd/time", String(epoch), { qos: 0 }, (err) => {
+    clientRef.current.publish("the_Forecaster_2_pocket_edition/cmd/time", String(epoch), { qos: 0 }, (err) => {
       if (err) {
         toast({ 
           title: "MQTT Error", 
@@ -154,7 +154,7 @@ export const Dashboard = () => {
       return;
     }
     const clamped = Math.min(Math.max(ms, 500), 600000);
-    clientRef.current.publish("kuytoojung/cmd/interval", String(clamped), { qos: 0, retain: true }, (err) => {
+    clientRef.current.publish("the_Forecaster_2_pocket_edition/cmd/interval", String(clamped), { qos: 0, retain: true }, (err) => {
       if (err) {
         toast({ 
           title: "MQTT Error", 
@@ -223,14 +223,14 @@ export const Dashboard = () => {
       if (!hasShownConnectToast.current) {
         hasShownConnectToast.current = true;
       }
-      client.subscribe('kuytoojung/#', { qos: 0 });
+      client.subscribe('the_Forecaster_2_pocket_edition/#', { qos: 0 });
     });
 
     client.on('message', (topic, message) => {
       const messageStr = message.toString();
       
       // Handle status topic (plain text: "online" or "offline")
-      if (topic === 'kuytoojung/status') {
+      if (topic === 'the_Forecaster_2_pocket_edition/status') {
         if (messageStr === 'online') {
           // Clear any pending disconnect timer
           if (disconnectTimerRef.current) {
@@ -255,8 +255,8 @@ export const Dashboard = () => {
         return;
       }
 
-      // Handle sensor data topic (JSON) - only from kuytoojung/data
-      if (topic === 'kuytoojung/data') {
+      // Handle sensor data topic (JSON) - only from the_Forecaster_2_pocket_edition/data
+      if (topic === 'the_Forecaster_2_pocket_edition/data') {
         try {
           const data = JSON.parse(messageStr);
           console.log('Received sensor data:', data);
@@ -279,7 +279,7 @@ export const Dashboard = () => {
           if (!hasSyncedRtc.current) {
             hasSyncedRtc.current = true;
             const epoch = Math.floor(Date.now() / 1000);
-            client.publish("kuytoojung/cmd/time", String(epoch), { qos: 0 }, (err) => {
+            client.publish("the_Forecaster_2_pocket_edition/cmd/time", String(epoch), { qos: 0 }, (err) => {
               if (!err) {
                 console.log(`RTC synced: ${epoch}`);
                 toast({ 

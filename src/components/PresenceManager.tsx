@@ -17,7 +17,7 @@ const PresenceManager = () => {
       reconnectPeriod: 1000,
       clean: true,
       will: {
-        topic: "kuytoojung/web/status",
+        topic: "the_Forecaster_2_pocket_edition/web/status",
         payload: "offline",
         qos: 0,
         retain: true,
@@ -27,10 +27,10 @@ const PresenceManager = () => {
 
     // เริ่มต้นสถานะเป็น offline
     const publishOffline = () =>
-      client.publish("kuytoojung/web/status", "offline", { retain: true });
+      client.publish("the_Forecaster_2_pocket_edition/web/status", "offline", { retain: true });
 
     const publishOnline = () =>
-      client.publish("kuytoojung/web/status", "online", { retain: true });
+      client.publish("the_Forecaster_2_pocket_edition/web/status", "online", { retain: true });
 
     client.on("connect", () => {
       publishOffline(); // ส่ง offline ทันทีเมื่อเชื่อมต่อครั้งแรก
@@ -44,7 +44,7 @@ const PresenceManager = () => {
       if (unloadedRef.current) return;
       unloadedRef.current = true;
       try {
-        client.publish("kuytoojung/web/status", "offline", { retain: true });
+        client.publish("the_Forecaster_2_pocket_edition/web/status", "offline", { retain: true });
       } catch {}
       client.end(true);
     };
@@ -65,7 +65,7 @@ const PresenceManager = () => {
     if (!client) return;
 
     const publish = (payload: "online" | "offline") =>
-      client.publish("kuytoojung/web/status", payload, { retain: true });
+      client.publish("the_Forecaster_2_pocket_edition/web/status", payload, { retain: true });
 
     if (location.pathname === "/dashboard") {
       publish("online");
