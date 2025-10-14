@@ -1,10 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import mqtt from "mqtt";
+import mqtt, { MqttClient } from "mqtt";
 
 const PresenceManager = () => {
   const location = useLocation();
+  const clientRef = useRef<MqttClient | null>(null);
+  const unloadedRef = useRef(false);
 
+  // สร้าง MQTT client ครั้งเดียว
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -20,62 +23,31 @@ const PresenceManager = () => {
         retain: true,
       },
     });
+    clientRef.current = client;
 
-    let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
-    let hasUnloaded = false;
+    // เริ่มต้นสถานะเป็น offline
+    const publishOffline = () =>
+      client.publish("kuytoojung/web/status", "offline", { retain: true });
 
     const publishOnline = () =>
       client.publish("kuytoojung/web/status", "online", { retain: true });
 
-    const sendHeartbeat = () =>
-      client.publish("kuytoojung/web/ping", "1");
-
-    const startHeartbeat = () => {
-      if (heartbeatTimer) clearInterval(heartbeatTimer);
-      heartbeatTimer = setInterval(sendHeartbeat, 20000);
-      sendHeartbeat();
-    };
-
-    const stopHeartbeat = () => {
-      if (heartbeatTimer) {
-        clearInterval(heartbeatTimer);
-        heartbeatTimer = null;
-      }
-    };
-
     client.on("connect", () => {
-      publishOnline();
-      // เริ่ม ping เฉพาะเมื่ออยู่หน้า dashboard
-      if (location.pathname === "/dashboard") startHeartbeat();
+      publishOffline(); // ส่ง offline ทันทีเมื่อเชื่อมต่อครั้งแรก
+      // ถ้าเปิดมาที่ dashboard ให้ส่ง online ต่อทันที
+      if (window.location.pathname === "/dashboard") publishOnline();
     });
 
-    client.on("reconnect", () => {
-      publishOnline();
-      if (location.pathname === "/dashboard") startHeartbeat();
-    });
-
-    client.on("close", stopHeartbeat);
-    client.on("offline", stopHeartbeat);
-
-    const publishOffline = () =>
-      client.publish("kuytoojung/web/status", "offline", { retain: true });
+    client.on("reconnect", publishOffline);
 
     const handleUnload = () => {
-      if (hasUnloaded) return;
-      hasUnloaded = true;
-      stopHeartbeat();
+      if (unloadedRef.current) return;
+      unloadedRef.current = true;
       try {
-        publishOffline();
-      } catch (error) {
-        console.error("Failed to publish offline status", error);
-      }
+        client.publish("kuytoojung/web/status", "offline", { retain: true });
+      } catch {}
       client.end(true);
     };
-
-    // ถ้าเปลี่ยนหน้า ไม่ใช่ dashboard ให้หยุด ping
-    if (location.pathname !== "/dashboard") {
-      stopHeartbeat();
-    }
 
     window.addEventListener("beforeunload", handleUnload);
     window.addEventListener("pagehide", handleUnload);
@@ -85,7 +57,22 @@ const PresenceManager = () => {
       window.removeEventListener("pagehide", handleUnload);
       handleUnload();
     };
-  }, [location.pathname]); // run effect เมื่อเปลี่ยนหน้า
+  }, []);
+
+  // สลับ online/offline ตาม path
+  useEffect(() => {
+    const client = clientRef.current;
+    if (!client) return;
+
+    const publish = (payload: "online" | "offline") =>
+      client.publish("kuytoojung/web/status", payload, { retain: true });
+
+    if (location.pathname === "/dashboard") {
+      publish("online");
+    } else {
+      publish("offline");
+    }
+  }, [location.pathname]);
 
   return null;
 };
