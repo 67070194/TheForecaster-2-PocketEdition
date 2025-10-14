@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import DashboardPage from "./pages/DashboardPage";
 import Documentation from "./pages/Documentation";
 import NotFound from "./pages/NotFound";
+import PresenceManager from "@/components/PresenceManager";
 
 const queryClient = new QueryClient();
 
@@ -19,12 +20,13 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          {/* ย้ายมาไว้ในนี้ */}
+          <PresenceManager />
           <Navbar />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/docs" element={<Documentation />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

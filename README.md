@@ -1,73 +1,41 @@
-# Welcome to your Lovable project
+# IoT Environmental Dashboard
 
-## Project info
+แดชบอร์ดเว็บสำหรับติดตามข้อมูลจากบอร์ด IoT แบบเรียลไทม์ โดยเชื่อมต่อกับ MQTT เพื่อรับค่าจากเซ็นเซอร์ (อุณหภูมิ ความชื้น ความกดอากาศ และฝุ่น PM1/2.5/10) และแสดงผลผ่านกราฟ/การ์ดในอินเทอร์เฟซภาษาไทย
 
-**URL**: https://lovable.dev/projects/1c0ce660-1a7f-4029-a3e4-b818d5ddb5e1
+## โครงสร้างหลักของโปรเจ็กต์
+- **Vite + React + TypeScript** สำหรับพัฒนา frontend
+- **Tailwind CSS** และ **shadcn/ui** สำหรับออกแบบ UI
+- **MQTT over WebSocket** (ผ่าน HiveMQ) ใช้สำหรับรับค่าจากอุปกรณ์และส่งสถานะการออนไลน์ของเว็บแดชบอร์ด
 
-## How can I edit this code?
+โค้ดหลักอยู่ในโฟลเดอร์ `src/` โดยเฉพาะหน้า `DashboardPage` ที่ใช้แสดงข้อมูลแบบเรียลไทม์ ส่วน `PresenceManager` จัดการการประกาศสถานะออนไลน์/ออฟไลน์ของเว็บผ่าน MQTT
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/1c0ce660-1a7f-4029-a3e4-b818d5ddb5e1) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## เริ่มใช้งานบนเครื่องตัวเอง
+ต้องติดตั้ง Node.js (แนะนำเวอร์ชันล่าสุด LTS)
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+คำสั่งด้านบนจะรันเซิร์ฟเวอร์ Vite (ปกติที่ `http://localhost:5173`) พร้อม hot reload
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Build สำหรับ production
+```sh
+npm run build
+npm run preview
+```
 
-**Use GitHub Codespaces**
+## โครงสร้างคำสั่ง npm เพิ่มเติม
+- `npm run lint` – ตรวจสอบโค้ดด้วย ESLint
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## โฟลเดอร์สำคัญ
+- `public/` – เก็บ asset ที่เสิร์ฟแบบสแตติก
+- `src/components/` – คอมโพเนนต์ UI และยูทิลิตีต่าง ๆ รวมถึง `PresenceManager`
+- `src/pages/` – หน้าหลักของเว็บ (โฮม, Dashboard, เอกสาร, 404)
 
-## What technologies are used for this project?
+## การปรับแต่งเพิ่มเติม
+- ต้องการเพิ่มเซ็นเซอร์หรือ widget ใหม่ เพิ่มโค้ดใน `DashboardPage`
+- หากต้องการเชื่อมต่อ MQTT โฮสต์อื่น ปรับค่าที่ `src/components/PresenceManager.tsx`
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/1c0ce660-1a7f-4029-a3e4-b818d5ddb5e1) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## License
+โปรเจ็กต์นี้ไม่มีการระบุไลเซนส์เป็นพิเศษ โปรดตรวจสอบกับผู้ดูแลโปรเจ็กต์ก่อนนำไปใช้งานเชิงพาณิชย์
