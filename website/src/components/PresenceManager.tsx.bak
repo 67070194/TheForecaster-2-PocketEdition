@@ -34,27 +34,6 @@ const PresenceManager = () => {
     const publishOffline = () => client.publish("TFCT_2_PE/web/status", "offline", { retain: true });
     const publishOnline = () => client.publish("TFCT_2_PE/web/status", "online", { retain: true });
 
-    // Attach message handler early to catch retained config immediately after subscribe
-    const onMessage = (topic: string, payload: Buffer) => {
-      if (topic !== "TFCT_2_PE/web/config") return;
-      try {
-        const j = JSON.parse(payload.toString() || '{}');
-        const api = (j?.api && String(j.api).replace(/\/$/, '')) || '';
-        const fw  = (j?.fw  && String(j.fw).replace(/\/$/, '')) || '';
-        let changed = false;
-        try {
-          const curApi = localStorage.getItem('tfct.apiBase') || '';
-          const curFw  = localStorage.getItem('tfct.fwBase')  || '';
-          if (api && api !== curApi) { localStorage.setItem('tfct.apiBase', api); changed = true; }
-          if (fw  && fw  !== curFw)  { localStorage.setItem('tfct.fwBase',  fw );  changed = true; }
-        } catch {}
-        if (changed) {
-          window.location.reload();
-        }
-      } catch {}
-    };
-    client.on('message', onMessage);
-
     client.on("connect", () => {
       // à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™à¸•à¸±à¹‰à¸‡à¸„à¹ˆà¸²à¹€à¸›à¹‡à¸™ offline à¸à¹ˆà¸­à¸™ à¹à¸¥à¹‰à¸§à¸„à¹ˆà¸­à¸¢ online à¹€à¸¡à¸·à¹ˆà¸­à¸­à¸¢à¸¹à¹ˆà¸«à¸™à¹‰à¸² /dashboard
       publishOffline();
@@ -84,8 +63,34 @@ const PresenceManager = () => {
       window.removeEventListener("beforeunload", handleUnload);
       window.removeEventListener("pagehide", handleUnload);
       handleUnload();
-      try { client.off('message', onMessage as any); } catch {}
     };
+  }, []);
+
+  // Listen for shared config and always track latest (override if changed)
+  useEffect(() => {
+    const client = clientRef.current;
+    if (!client) return;
+    const onMessage = (topic: string, payload: Buffer) => {
+      if (topic !== "TFCT_2_PE/web/config") return;
+      try {
+        const j = JSON.parse(payload.toString() || '{}');
+        const api = (j?.api && String(j.api).replace(/\/$/, '')) || '';
+        const fw  = (j?.fw  && String(j.fw).replace(/\/$/, '')) || '';
+        let changed = false;
+        try {
+          const curApi = localStorage.getItem('tfct.apiBase') || '';
+          const curFw  = localStorage.getItem('tfct.fwBase')  || '';
+          if (api && api !== curApi) { localStorage.setItem('tfct.apiBase', api); changed = true; }
+          if (fw  && fw  !== curFw)  { localStorage.setItem('tfct.fwBase',  fw );  changed = true; }
+        } catch {}
+        if (changed) {
+          // Reload to pick up new backend base; URL stays clean
+          window.location.reload();
+        }
+      } catch {}
+    };
+    client.on('message', onMessage);
+    return () => { try { client.off('message', onMessage as any); } catch {} };
   }, []);
 
   // à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸ªà¸–à¸²à¸™à¸°à¸•à¸²à¸¡ path: online à¹€à¸‰à¸žà¸²à¸° /dashboard, à¸™à¸­à¸à¸™à¸±à¹‰à¸™ offline
@@ -107,5 +112,6 @@ const PresenceManager = () => {
 };
 
 export default PresenceManager;
+
 
 

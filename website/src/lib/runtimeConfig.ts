@@ -84,6 +84,7 @@ export function applyRuntimeParamsAndCleanUrl(): boolean {
     // Persist once using existing helpers
     void fromQueryAndPersist('api');
     void fromQueryAndPersist('fw');
+    try { localStorage.setItem('tfct.host', '1'); } catch {}
 
     // Build a clean URL (remove only our keys; keep others and hash)
     for (const k of keys) url.searchParams.delete(k);
