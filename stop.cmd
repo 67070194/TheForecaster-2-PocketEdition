@@ -1,5 +1,6 @@
 @echo off
-REM Alias for down: stop the stack
-call "%~dp0down.cmd"
-exit /b %errorlevel%
-
+REM Stop the stack (no volume removal)
+docker compose down
+if errorlevel 1 exit /b %errorlevel%
+echo Stopped containers. To reset DB (remove volumes), run: docker compose down -v
+exit /b 0

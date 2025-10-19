@@ -47,14 +47,14 @@
    หมายเหตุ: ต้องมีไฟล์ `.env` ก่อนรัน มิฉะนั้น `docker compose up -d` จะล้มเหลวด้วย `env file ... .env not found`
 
 ```cmd
-docker compose up -d && echo Wait 1-2 minutes for the website to finish running. && for /f "tokens=2 delims=:" %A in ('ipconfig ^| findstr /i IPv4 ^| findstr /v 127.0.0.1') do @for /f "delims= " %B in ("%A") do @echo Open WEBSITE: http://%B:8080  (and http://localhost:8080)
+start
 ```
 
 Note: After starting, the web service may take 1-2 minutes on first run to finish installing/building. If the page isn't up yet, wait a bit and refresh.
 
 ทางลัดบน Windows (cmd)
-- เริ่มระบบ: `up` หรือ `start` (ไฟล์ `up.cmd`/`start.cmd` ที่รากโปรเจกต์)
-- หยุดระบบ: `down` หรือ `stop` (ไฟล์ `down.cmd`/`stop.cmd` ที่รากโปรเจกต์)
+- เริ่มระบบ: `start` (ไฟล์ `start.cmd` ที่รากโปรเจกต์)
+- หยุดระบบ: `stop` (ไฟล์ `stop.cmd` ที่รากโปรเจกต์)
 
 หมายเหตุการเข้าถึงเว็บ UI
 - เปิดได้ทั้ง http://localhost:8080 และ http://<IP-เครื่อง>:8080
