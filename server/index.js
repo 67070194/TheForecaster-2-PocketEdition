@@ -20,6 +20,9 @@ const MQTT_PASSWORD = process.env.MQTT_PASSWORD || undefined;
 let sampleIntervalMs = Number(process.env.SAMPLE_INTERVAL_MS || '5000');
 const UPLOADS_DIR = process.env.UPLOADS_DIR || path.resolve(process.cwd(), 'uploads');
 
+// Latest shared web config payload (JSON string) to republish on demand
+let latestWebConfig = null;
+
 // DB
 const pool = new Pool({ connectionString: DATABASE_URL });
 
@@ -72,6 +75,18 @@ function startIngest() {
   client.on('message', async (topic, payload) => {
     const msg = payload.toString();
     try {
+      // Respond to config requests or presence: republish latest config
+      if (
+        topic === `${BASE_TOPIC}/web/req_config` ||
+        (topic === `${BASE_TOPIC}/web/status` && String(msg).trim().toLowerCase() === 'online')
+      ) {
+        try {
+          if (latestWebConfig) {
+            client.publish(`${BASE_TOPIC}/web/config`, latestWebConfig, { retain: true, qos: 0 });
+          }
+        } catch {}
+        return;
+      }
       // Update ingest sampling interval from UI command: BASE_TOPIC/cmd/interval (ms)
       if (topic === `${BASE_TOPIC}/cmd/interval`) {
         const ms = Number(msg);
@@ -339,7 +354,6 @@ app.listen(PORT, () => {
 
 // Run MQTT ingest in background and keep reference for publishing
 const mqttClient = startIngest();
-let latestWebConfig = null;
 
 // Publish web shared config to MQTT retained topic
 app.post('/web/config', (req, res) => {

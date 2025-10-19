@@ -56,8 +56,7 @@ const PresenceManager = () => {
     client.on('message', onMessage);
 
     client.on("connect", () => {
-      // à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™à¸•à¸±à¹‰à¸‡à¸„à¹ˆà¸²à¹€à¸›à¹‡à¸™ offline à¸à¹ˆà¸­à¸™ à¹à¸¥à¹‰à¸§à¸„à¹ˆà¸­à¸¢ online à¹€à¸¡à¸·à¹ˆà¸­à¸­à¸¢à¸¹à¹ˆà¸«à¸™à¹‰à¸² /dashboard
-      publishOffline();
+      try { client.subscribe("TFCT_2_PE/web/config", { qos: 0 }); } catch {}
       const base = (function(){
         let b = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
         if (!b.startsWith("/")) b = "/";
@@ -65,9 +64,10 @@ const PresenceManager = () => {
       })();
       const p = window.location.pathname || "/";
       const normalized = p.startsWith(base) ? (p.slice(base.length) || "/") : p;
-      if (normalized === "/dashboard") publishOnline();
-
-      try { client.subscribe("TFCT_2_PE/web/config", { qos: 0 }); } catch {}
+      if (normalized === "/dashboard") {
+        publishOnline();
+        try { client.publish("TFCT_2_PE/web/req_config", "1", { qos: 0 }); } catch {}
+      }
     });
     client.on("reconnect", publishOffline);
 
@@ -107,5 +107,6 @@ const PresenceManager = () => {
 };
 
 export default PresenceManager;
+
 
 
