@@ -8,6 +8,7 @@ import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Upload } from 'lucide-react';
+import { getApiBase, getFwBase } from '@/lib/runtimeConfig';
 
 // Dashboard
 // - Reads data from ESP32 via MQTT (Tester Mode = no MQTT; UI simulates data)
@@ -137,7 +138,7 @@ export const Dashboard = () => {
     let cancelled = false;
     (async () => {
       try {
-        const API_BASE = ((import.meta as any).env?.VITE_API_BASE || '').replace(/\/$/, '');
+        const API_BASE = getApiBase();
         const res = await fetch(`${API_BASE}/api/readings?minutes=480`);
         if (!res.ok) return;
         const rows = await res.json();
@@ -283,7 +284,7 @@ export const Dashboard = () => {
       setIsUploading(true);
       const form = new FormData();
       form.append('file', file);
-      const FW_BASE = ((import.meta as any).env?.VITE_FW_BASE || (import.meta as any).env?.VITE_API_BASE || '').replace(/\/$/, '');
+      const FW_BASE = getFwBase();
       const res = await fetch(`${FW_BASE}/fw/upload`, { method: 'POST', body: form });
       if (!res.ok) {
         const msg = await res.text().catch(() => 'Upload failed');
@@ -496,7 +497,7 @@ export const Dashboard = () => {
               // After successful OTA, delete older firmware files and keep the latest only
               if (evt.event === 'ota_ok' && lastUploadedFileRef.current) {
                 try {
-                  const FW_BASE = ((import.meta as any).env?.VITE_FW_BASE || (import.meta as any).env?.VITE_API_BASE || '').replace(/\/$/, '');
+                  const FW_BASE = getFwBase();
                   void fetch(`${FW_BASE}/fw/cleanup`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
