@@ -67,3 +67,32 @@ export function getFwBase(): string {
   return fw || getApiBase();
 }
 
+// Apply ?api / ?fw params (and aliases), persist them, then strip them from URL.
+// Returns true if a redirect (location.replace) was initiated.
+export function applyRuntimeParamsAndCleanUrl(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const url = new URL(window.location.href);
+    // Check if any runtime keys are present
+    const keys = ['api', 'fw', 'apiBase', 'fwBase', 'API_BASE', 'FW_BASE'];
+    let present = false;
+    for (const k of keys) {
+      if (url.searchParams.has(k)) { present = true; break; }
+    }
+    if (!present) return false;
+
+    // Persist once using existing helpers
+    void fromQueryAndPersist('api');
+    void fromQueryAndPersist('fw');
+
+    // Build a clean URL (remove only our keys; keep others and hash)
+    for (const k of keys) url.searchParams.delete(k);
+    const cleanSearch = url.searchParams.toString();
+    const clean = url.origin + url.pathname + (cleanSearch ? ('?' + cleanSearch) : '') + (url.hash || '');
+    // Replace without adding to history
+    window.location.replace(clean);
+    return true;
+  } catch {
+    return false;
+  }
+}
