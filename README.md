@@ -46,15 +46,11 @@
 
    หมายเหตุ: ต้องมีไฟล์ `.env` ก่อนรัน มิฉะนั้น `docker compose up -d` จะล้มเหลวด้วย `env file ... .env not found`
 
-```cmd
-start
-```
-
 Note: After starting, the web service may take 1-2 minutes on first run to finish installing/building. If the page isn't up yet, wait a bit and refresh.
 
 ทางลัดบน Windows (cmd)
-- เริ่มระบบ: `start` (ไฟล์ `start.cmd` ที่รากโปรเจกต์)
-- หยุดระบบ: `stop` (ไฟล์ `stop.cmd` ที่รากโปรเจกต์)
+- เริ่มระบบ: ใช้คำสั่ง `start.cmd` เพื่อรันโปรเจคผ่าน docker
+- หยุดระบบ: ใช้คำสั่ง `stop.cmd` เพื่อหยุดการทำงาน
 
 รายละเอียดคำสั่ง start/stop
 - `start`
@@ -73,6 +69,12 @@ Note: After starting, the web service may take 1-2 minutes on first run to finis
     ```cmd
     stop
     ```
+ - `reset`
+   - Remove volumes and restart the stack (`docker compose down -v` then `start`)
+   - ใช้งาน:
+     ```cmd
+     reset
+     ```
 - รีเซ็ตฐานข้อมูล (ลบ volumes ทั้งหมด):
   ```cmd
   docker compose down -v
