@@ -1,4 +1,4 @@
-# The Forecaster 2 – Pocket Edition (IoT Environmental Dashboard)
+﻿# The Forecaster 2 – Pocket Edition (IoT Environmental Dashboard)
 
 แดชบอร์ดเฝ้าระวังคุณภาพอากาศ/สภาพแวดล้อมแบบเรียลไทม์ ประกอบด้วย
 
@@ -47,8 +47,19 @@
    หมายเหตุ: ต้องมีไฟล์ `.env` ก่อนรัน มิฉะนั้น `docker compose up -d` จะล้มเหลวด้วย `env file ... .env not found`
 
 ```cmd
-docker compose up -d
+docker compose up -d && echo Wait 1-2 minutes for the website to finish running. && for /f "tokens=2 delims=:" %A in ('ipconfig ^| findstr /i IPv4 ^| findstr /v 127.0.0.1') do @for /f "delims= " %B in ("%A") do @echo Open WEBSITE: http://%B:8080  (and http://localhost:8080)
 ```
+
+Note: After starting, the web service may take 1-2 minutes on first run to finish installing/building. If the page isn't up yet, wait a bit and refresh.
+
+ทางลัดบน Windows (cmd)
+- เริ่มระบบ: `up` หรือ `start` (ไฟล์ `up.cmd`/`start.cmd` ที่รากโปรเจกต์)
+- หยุดระบบ: `down` หรือ `stop` (ไฟล์ `down.cmd`/`stop.cmd` ที่รากโปรเจกต์)
+
+หมายเหตุการเข้าถึงเว็บ UI
+- เปิดได้ทั้ง http://localhost:8080 และ http://<IP-เครื่อง>:8080
+- การอัปโหลด Firmware แนะนำให้เปิดผ่าน IP เพื่อให้ OTA URL ใช้ได้จากอุปกรณ์ในเครือข่าย
+  
 
 3) เปิดเว็บ UI: http://localhost:8080
 4) ตรวจสุขภาพ API: http://localhost:3001/health
@@ -216,4 +227,5 @@ npm run dev
 ## License
 
 ยังไม่ระบุไลเซนส์ในรีโปนี้ หากต้องการเพิ่ม สามารถแจ้งเพื่ออัปเดตไฟล์ได้
+
 
