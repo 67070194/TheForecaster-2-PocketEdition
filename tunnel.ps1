@@ -59,6 +59,14 @@ if (-not $NoClipboard) {
   }
 }
 
+try {
+  $body = @{ api = $url; fw = $url } | ConvertTo-Json -Compress
+  Invoke-RestMethod -Method Post -Uri "http://localhost:$Port/web/config" -ContentType 'application/json' -Body $body | Out-Null
+  Write-Host "[✓] Published config to MQTT via /web/config" -ForegroundColor Green
+} catch {
+  Write-Host "[!] Could not publish config to MQTT (server not ready?): $_" -ForegroundColor Yellow
+}
+
 if (-not $NoOpenBrowser) {
   try {
     Start-Process cmd.exe -ArgumentList @('/c','start','',"$dashUrl") | Out-Null

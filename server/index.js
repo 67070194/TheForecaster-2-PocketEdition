@@ -337,5 +337,24 @@ app.listen(PORT, () => {
   console.log(`[HTTP] listening on :${PORT}`);
 });
 
-// Run MQTT ingest in background
-startIngest();
+// Run MQTT ingest in background and keep reference for publishing
+const mqttClient = startIngest();
+
+// Publish web shared config to MQTT retained topic
+app.post('/web/config', (req, res) => {
+  try {
+    const apiRaw = (req.body?.api ?? '').toString();
+    const fwRaw = (req.body?.fw ?? '').toString();
+    const api = apiRaw.replace(/\/$/, '');
+    const fw = fwRaw.replace(/\/$/, '');
+    if (!api && !fw) return res.status(400).json({ error: 'Missing api or fw' });
+    if (!mqttClient || !mqttClient.connected) return res.status(503).json({ error: 'MQTT not connected' });
+    const payload = JSON.stringify({ ...(api ? { api } : {}), ...(fw ? { fw } : {}) });
+    mqttClient.publish(`${BASE_TOPIC}/web/config`, payload, { retain: true, qos: 0 }, (err) => {
+      if (err) return res.status(500).json({ error: String(err?.message || err) });
+      res.json({ ok: true, topic: `${BASE_TOPIC}/web/config`, payload: JSON.parse(payload) });
+    });
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});

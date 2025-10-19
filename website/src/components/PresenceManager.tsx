@@ -81,7 +81,7 @@ const PresenceManager = () => {
     };
   }, []);
 
-  // Listen for shared config and apply once if not set locally
+  // Listen for shared config and always track latest (override if changed)
   useEffect(() => {
     const client = clientRef.current;
     if (!client) return;
@@ -93,12 +93,15 @@ const PresenceManager = () => {
         const fw  = (j?.fw  && String(j.fw).replace(/\/$/, '')) || '';
         let changed = false;
         try {
-          const hasApi = !!localStorage.getItem('tfct.apiBase');
-          const hasFw  = !!localStorage.getItem('tfct.fwBase');
-          if (!hasApi && api) { localStorage.setItem('tfct.apiBase', api); changed = true; }
-          if (!hasFw  && fw)  { localStorage.setItem('tfct.fwBase',  fw ); changed = true; }
+          const curApi = localStorage.getItem('tfct.apiBase') || '';
+          const curFw  = localStorage.getItem('tfct.fwBase')  || '';
+          if (api && api !== curApi) { localStorage.setItem('tfct.apiBase', api); changed = true; }
+          if (fw  && fw  !== curFw)  { localStorage.setItem('tfct.fwBase',  fw );  changed = true; }
         } catch {}
-        if (changed) window.location.reload();
+        if (changed) {
+          // Reload to pick up new backend base; URL stays clean
+          window.location.reload();
+        }
       } catch {}
     };
     client.on('message', onMessage);
