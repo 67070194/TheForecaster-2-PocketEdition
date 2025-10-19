@@ -46,11 +46,10 @@
 
    หมายเหตุ: ต้องมีไฟล์ `.env` ก่อนรัน มิฉะนั้น `docker compose up -d` จะล้มเหลวด้วย `env file ... .env not found`
 
-Note: After starting, the web service may take 1-2 minutes on first run to finish installing/building. If the page isn't up yet, wait a bit and refresh.
-
 ทางลัดบน Windows (cmd)
-- เริ่มระบบ: ใช้คำสั่ง `start.cmd` เพื่อรันโปรเจคผ่าน docker
-- หยุดระบบ: ใช้คำสั่ง `stop.cmd` เพื่อหยุดการทำงาน
+- เริ่มระบบ : ใช้คำสั่ง `start.cmd` เพื่อรันโปรเจคผ่าน docker
+- หยุดระบบ : ใช้คำสั่ง `stop.cmd` เพื่อหยุดการทำงาน
+- รีเซ็ตฐานข้อมูล : ใช้คำสั่ง `reset.cmd` ล้างฐานข้อมูลทั้งหมด
 
 รายละเอียดคำสั่ง start/stop
 - `start`
@@ -61,28 +60,23 @@ Note: After starting, the web service may take 1-2 minutes on first run to finis
   - ต้องเปิด Docker Desktop ให้ Running และมีไฟล์ `.env` ก่อน
   - ใช้งาน:
     ```cmd
-    start
+    start.cmd
     ```
 - `stop`
-  - เรียก `docker compose down` เพื่อหยุดคอนเทนเนอร์ (ไม่ลบข้อมูลใน volumes)
+  - เรียก `docker compose down` เพื่อหยุดคอนเทนเนอร์
   - ใช้งาน:
     ```cmd
-    stop
+    stop.cmd
     ```
- - `reset`
-   - Remove volumes and restart the stack (`docker compose down -v` then `start`)
-   - ใช้งาน:
-     ```cmd
-     reset
-     ```
-- รีเซ็ตฐานข้อมูล (ลบ volumes ทั้งหมด):
-  ```cmd
-  docker compose down -v
-  start
-  ```
+- `reset`
+  - Remove volumes `docker compose down -v` ล้างฐานข้อมูลทั้งหมด
+  - ใช้งาน:
+    ```cmd
+    reset.cmd
+    ```
 
 หมายเหตุการเข้าถึงเว็บ UI
-- เปิดได้ทั้ง http://localhost:8080 และ http://<IP-เครื่อง>:8080
+- เปิดได้ทั้ง http://<IP-เครื่อง>:8080 และ http://localhost:8080
 - การอัปโหลด Firmware แนะนำให้เปิดผ่าน IP เพื่อให้ OTA URL ใช้ได้จากอุปกรณ์ในเครือข่าย
   
 
