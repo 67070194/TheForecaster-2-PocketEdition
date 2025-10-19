@@ -216,8 +216,21 @@ function uploaderPlugin() {
 }
 
 // https://vitejs.dev/config/
-export default defineConfig(({ command }) => ({
-  base: command === 'build' ? './' : '/',
+export default defineConfig(({ command }) => {
+  // Determine base for build outputs
+  // - Local dev: '/'
+  // - CI on GitHub for this repo: '/TheForecaster-2-PocketEdition/'
+  // - Fallback build elsewhere: './' (relative assets)
+  const isBuild = command === 'build';
+  const isGitHubCI = !!process.env.GITHUB_ACTIONS;
+  const repo = process.env.GITHUB_REPOSITORY || '';
+  const isThisRepo = /\/TheForecaster-2-PocketEdition$/.test(repo);
+  const base = isBuild
+    ? (isGitHubCI && isThisRepo ? '/TheForecaster-2-PocketEdition/' : './')
+    : '/';
+
+  return ({
+  base,
   server: {
     host: "::",
     port: 8080,
@@ -243,4 +256,5 @@ export default defineConfig(({ command }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-}));
+  });
+});

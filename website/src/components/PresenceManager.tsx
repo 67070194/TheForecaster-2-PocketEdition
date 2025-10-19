@@ -36,7 +36,14 @@ const PresenceManager = () => {
     client.on("connect", () => {
       // เริ่มต้นตั้งค่าเป็น offline ก่อน แล้วค่อย online เมื่ออยู่หน้า /dashboard
       publishOffline();
-      if (window.location.pathname === "/dashboard") publishOnline();
+      const base = (function(){
+        let b = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+        if (!b.startsWith("/")) b = "/";
+        return b;
+      })();
+      const p = window.location.pathname || "/";
+      const normalized = p.startsWith(base) ? (p.slice(base.length) || "/") : p;
+      if (normalized === "/dashboard") publishOnline();
     });
     client.on("reconnect", publishOffline);
 
@@ -61,7 +68,14 @@ const PresenceManager = () => {
     const client = clientRef.current;
     if (!client) return;
     const publish = (payload: "online" | "offline") => client.publish("TFCT_2_PE/web/status", payload, { retain: true });
-    publish(location.pathname === "/dashboard" ? "online" : "offline");
+    const base = (function(){
+      let b = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+      if (!b.startsWith("/")) b = "/";
+      return b;
+    })();
+    const p = location.pathname || "/";
+    const normalized = p.startsWith(base) ? (p.slice(base.length) || "/") : p;
+    publish(normalized === "/dashboard" ? "online" : "offline");
   }, [location.pathname]);
 
   return null;

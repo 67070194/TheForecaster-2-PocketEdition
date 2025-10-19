@@ -19,12 +19,17 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter basename={(function(){
+          let b = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+          if (!b.startsWith("/")) b = "/"; // handle './' from local builds
+          return b;
+        })()}>
           {/* ย้ายมาไว้ในนี้ */}
           <PresenceManager />
           <Navbar />
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="" element={<Index />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/docs" element={<Documentation />} />
             <Route path="*" element={<NotFound />} />

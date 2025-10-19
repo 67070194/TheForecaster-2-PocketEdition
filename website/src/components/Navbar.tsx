@@ -15,9 +15,18 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Navbar = () => {
   const location = useLocation();
+  const base = (function(){
+    let b = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+    if (!b.startsWith("/")) b = "/";
+    return b;
+  })();
+  const currentPath = (() => {
+    const p = location.pathname || "/";
+    return p.startsWith(base) ? p.slice(base.length) || "/" : p;
+  })();
   const [open, setOpen] = useState(false);
   
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => currentPath === path;
 
   const navItems = [
     { path: "/", icon: Home, label: "Home" },
