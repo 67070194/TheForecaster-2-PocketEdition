@@ -56,6 +56,29 @@ Note: After starting, the web service may take 1-2 minutes on first run to finis
 - เริ่มระบบ: `start` (ไฟล์ `start.cmd` ที่รากโปรเจกต์)
 - หยุดระบบ: `stop` (ไฟล์ `stop.cmd` ที่รากโปรเจกต์)
 
+รายละเอียดคำสั่ง start/stop
+- `start`
+  - เรียก `docker compose up -d`
+  - พิมพ์ข้อความแนะนำให้รอ 1–2 นาทีสำหรับรอบแรก
+  - แสดงลิงก์เข้าเว็บทั้ง `http://localhost:8080` และ `http://<IP-เครื่อง>:8080`
+  - ใช้ใน Command Prompt (cmd) และให้รันจากโฟลเดอร์โปรเจกต์
+  - ต้องเปิด Docker Desktop ให้ Running และมีไฟล์ `.env` ก่อน
+  - ใช้งาน:
+    ```cmd
+    start
+    ```
+- `stop`
+  - เรียก `docker compose down` เพื่อหยุดคอนเทนเนอร์ (ไม่ลบข้อมูลใน volumes)
+  - ใช้งาน:
+    ```cmd
+    stop
+    ```
+- รีเซ็ตฐานข้อมูล (ลบ volumes ทั้งหมด):
+  ```cmd
+  docker compose down -v
+  start
+  ```
+
 หมายเหตุการเข้าถึงเว็บ UI
 - เปิดได้ทั้ง http://localhost:8080 และ http://<IP-เครื่อง>:8080
 - การอัปโหลด Firmware แนะนำให้เปิดผ่าน IP เพื่อให้ OTA URL ใช้ได้จากอุปกรณ์ในเครือข่าย
