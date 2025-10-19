@@ -21,6 +21,8 @@ Local development
 - Run the full stack with Docker Desktop:
 - `docker-start.cmd` (or `docker compose up -d`) → web at `http://localhost:8080`, API at `http://localhost:3001`.
 - `start-all.cmd` → start Docker, then open Quick Tunnel and auto-open dashboard with `?api`/`?fw`.
+- `docker-stop.cmd` → stop Docker stack.
+- `stop-all.cmd` → stop Cloudflare tunnel and Docker stack together.
 - Or run separately:
   - `cd server && npm install && npm run dev`
   - `cd website && npm install && npm run dev`

@@ -7,7 +7,7 @@ import { Thermometer, Droplets, Cloud, CloudRain, Sun, Wind, Leaf, AlertTriangle
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Upload } from 'lucide-react';
+import { Upload, Database as DbIcon } from 'lucide-react';
 import { getApiBase, getFwBase } from '@/lib/runtimeConfig';
 
 // Dashboard
@@ -105,6 +105,7 @@ export const Dashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isTesterMode, setIsTesterMode] = useState(false); // Tester mode: do not use MQTT
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const [dbStatus, setDbStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const lastMqttDataRef = useRef<{ data: SensorData; timestamp: number } | null>(null); // stash last MQTT packet with ts
   const hasShownConnectToast = useRef(false);
   const hasSyncedRtc = useRef(false); // sync RTC once after first data
@@ -130,6 +131,27 @@ export const Dashboard = () => {
     setChartData([]);
     lastDbTsRef.current = 0;
     historyLoadedRef.current = false;
+  }, [isTesterMode]);
+
+  // Database/Backend health status polling
+  useEffect(() => {
+    let disposed = false;
+    const poll = async () => {
+      try {
+        const base = getApiBase();
+        const url = (base ? `${base}/health` : '/health');
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error('bad status');
+        const j = await res.json().catch(() => ({}));
+        if (!disposed) setDbStatus(j && j.ok && j.db ? 'online' : 'offline');
+      } catch {
+        if (!disposed) setDbStatus('offline');
+      }
+    };
+    setDbStatus('checking');
+    void poll();
+    const id = setInterval(poll, 10000);
+    return () => { disposed = true; clearInterval(id); };
   }, [isTesterMode]);
 
   // Load historical data from DB once (Normal Mode) then keep appending from MQTT
@@ -662,7 +684,7 @@ export const Dashboard = () => {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap justify-center">
             <Button
               variant={isTesterMode ? "default" : "outline"}
               size="sm"
@@ -672,31 +694,43 @@ export const Dashboard = () => {
               <FlaskConical size={16} />
               {isTesterMode ? "Tester Mode" : "Normal Mode"}
             </Button>
-            {isTesterMode ? (
-              <Badge variant="default" className="bg-blue-500 hover:bg-blue-600 flex items-center gap-2">
-                <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                Tester
-              </Badge>
-            ) : (
-              <Badge 
-                variant="default"
-                className={`${
-                  connectionStatus === 'connected' 
-                    ? "bg-green-500 hover:bg-green-600" 
-                    : connectionStatus === 'disconnected'
-                    ? "bg-red-500 hover:bg-red-600"
-                    : "bg-yellow-500 hover:bg-yellow-600"
-                } flex items-center gap-2`}
-              >
-                <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                {connectionStatus === 'connected' 
-                  ? "Connected" 
+            {/* ESP32 (MQTT) status */}
+            <Badge 
+              variant="default"
+              className={`${
+                isTesterMode
+                  ? "bg-blue-500 hover:bg-blue-600"
+                  : connectionStatus === 'connected'
+                  ? "bg-green-500 hover:bg-green-600"
                   : connectionStatus === 'disconnected'
-                  ? "Disconnected"
-                  : "Connecting..."}
-              </Badge>
-            )}
-        </div>
+                  ? "bg-red-500 hover:bg-red-600"
+                  : "bg-yellow-500 hover:bg-yellow-600"
+              } flex items-center gap-2`}
+            >
+              <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+              {isTesterMode
+                ? "ESP32: Tester"
+                : connectionStatus === 'connected'
+                ? "ESP32: Connected"
+                : connectionStatus === 'disconnected'
+                ? "ESP32: Disconnected"
+                : "ESP32: Connecting..."}
+            </Badge>
+            {/* Database status (via /health) */}
+            <Badge 
+              variant="default"
+              className={`${
+                dbStatus === 'online'
+                  ? "bg-green-500 hover:bg-green-600"
+                  : dbStatus === 'offline'
+                  ? "bg-red-500 hover:bg-red-600"
+                  : "bg-yellow-500 hover:bg-yellow-600"
+              } flex items-center gap-2`}
+            >
+              <DbIcon size={16} />
+              {dbStatus === 'online' ? 'Database: Online' : dbStatus === 'offline' ? 'Database: Offline' : 'Database: Checking...'}
+            </Badge>
+          </div>
       </div>
       {/* OTA Panel moved inline next to Update Settings */}
         <div className="mb-6">
