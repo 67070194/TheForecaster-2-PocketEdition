@@ -39,3 +39,13 @@ npm run preview
 
 ## License
 โปรเจ็กต์นี้ไม่มีการระบุไลเซนส์เป็นพิเศษ โปรดตรวจสอบกับผู้ดูแลโปรเจ็กต์ก่อนนำไปใช้งานเชิงพาณิชย์
+
+
+# Project Structure
+
+- `web/` � Vite + React app (moved from repo root)
+- `esp32/` � ESP32 firmware source (add your code here)
+
+Usage:
+- Web: `cd web && npm install && npm run dev`
+- Build: `cd web && npm run build`
