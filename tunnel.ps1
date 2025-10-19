@@ -1,4 +1,4 @@
-param(
+﻿param(
   [int]$Port = 3001,
   [string]$Dashboard = "https://67070194.github.io/TheForecaster-2-PocketEdition/dashboard",
   [switch]$NoOpenBrowser,
@@ -53,7 +53,7 @@ Write-Host "[+] Dashboard URL: $dashUrl" -ForegroundColor Green
 if (-not $NoClipboard) {
   try {
     Set-Clipboard -Value $dashUrl
-    Write-Host "[✓] Copied Dashboard URL to clipboard" -ForegroundColor Green
+    Write-Host "[OK] Copied Dashboard URL to clipboard" -ForegroundColor Green
   } catch {
     Write-Host "[!] Could not copy to clipboard" -ForegroundColor Yellow
   }
@@ -62,7 +62,7 @@ if (-not $NoClipboard) {
 try {
   $body = @{ api = $url; fw = $url } | ConvertTo-Json -Compress
   Invoke-RestMethod -Method Post -Uri "http://localhost:$Port/web/config" -ContentType 'application/json' -Body $body | Out-Null
-  Write-Host "[✓] Published config to MQTT via /web/config" -ForegroundColor Green
+  Write-Host "[OK] Published config to MQTT via /web/config" -ForegroundColor Green
 } catch {
   Write-Host "[!] Could not publish config to MQTT (server not ready?): $_" -ForegroundColor Yellow
 }
@@ -70,7 +70,7 @@ try {
 if (-not $NoOpenBrowser) {
   try {
     Start-Process cmd.exe -ArgumentList @('/c','start','',"$dashUrl") | Out-Null
-    Write-Host "[✓] Opened browser" -ForegroundColor Green
+    Write-Host "[OK] Opened browser" -ForegroundColor Green
   } catch {
     Write-Host "[!] Could not open browser" -ForegroundColor Yellow
   }
@@ -81,3 +81,4 @@ Write-Host "[i] Log files: $logOut , $logErr" -ForegroundColor DarkGray
 
 # Keep the tunnel process alive; show a minimal heartbeat
 try { Wait-Process -Id $proc.Id } catch {}
+

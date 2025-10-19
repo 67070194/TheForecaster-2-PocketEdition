@@ -1,19 +1,19 @@
-import { useEffect, useRef } from "react";
+﻿import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import mqtt, { MqttClient } from "mqtt";
 import { getApiBase, getFwBase } from "@/lib/runtimeConfig";
 
 // PresenceManager
-// - ประกาศสถานะหน้าเว็บไปยัง MQTT ด้วย retained message (TFCT_2_PE/web/status)
-// - online เฉพาะเมื่อ path เป็น "/dashboard"; หน้าที่อื่นเป็น offline
-// - ESP32 ใช้สถานะนี้เป็นเงื่อนไขเปิด/ปิดการ publish ข้อมูล
-// - ตั้ง Last Will เป็น offline เพื่อให้ broker ตั้งค่าอัตโนมัติเมื่อเบราว์เซอร์ปิดโดยไม่ปกติ
+// - à¸›à¸£à¸°à¸à¸²à¸¨à¸ªà¸–à¸²à¸™à¸°à¸«à¸™à¹‰à¸²à¹€à¸§à¹‡à¸šà¹„à¸›à¸¢à¸±à¸‡ MQTT à¸”à¹‰à¸§à¸¢ retained message (TFCT_2_PE/web/status)
+// - online à¹€à¸‰à¸žà¸²à¸°à¹€à¸¡à¸·à¹ˆà¸­ path à¹€à¸›à¹‡à¸™ "/dashboard"; à¸«à¸™à¹‰à¸²à¸—à¸µà¹ˆà¸­à¸·à¹ˆà¸™à¹€à¸›à¹‡à¸™ offline
+// - ESP32 à¹ƒà¸Šà¹‰à¸ªà¸–à¸²à¸™à¸°à¸™à¸µà¹‰à¹€à¸›à¹‡à¸™à¹€à¸‡à¸·à¹ˆà¸­à¸™à¹„à¸‚à¹€à¸›à¸´à¸”/à¸›à¸´à¸”à¸à¸²à¸£ publish à¸‚à¹‰à¸­à¸¡à¸¹à¸¥
+// - à¸•à¸±à¹‰à¸‡ Last Will à¹€à¸›à¹‡à¸™ offline à¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸«à¹‰ broker à¸•à¸±à¹‰à¸‡à¸„à¹ˆà¸²à¸­à¸±à¸•à¹‚à¸™à¸¡à¸±à¸•à¸´à¹€à¸¡à¸·à¹ˆà¸­à¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œà¸›à¸´à¸”à¹‚à¸”à¸¢à¹„à¸¡à¹ˆà¸›à¸à¸•à¸´
 const PresenceManager = () => {
   const location = useLocation();
   const clientRef = useRef<MqttClient | null>(null);
   const unloadedRef = useRef(false);
 
-  // สร้าง MQTT client ฝั่งเว็บ + ตั้งค่า LWT เป็น offline (retain)
+  // à¸ªà¸£à¹‰à¸²à¸‡ MQTT client à¸à¸±à¹ˆà¸‡à¹€à¸§à¹‡à¸š + à¸•à¸±à¹‰à¸‡à¸„à¹ˆà¸² LWT à¹€à¸›à¹‡à¸™ offline (retain)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -35,7 +35,7 @@ const PresenceManager = () => {
     const publishOnline = () => client.publish("TFCT_2_PE/web/status", "online", { retain: true });
 
     client.on("connect", () => {
-      // เริ่มต้นตั้งค่าเป็น offline ก่อน แล้วค่อย online เมื่ออยู่หน้า /dashboard
+      // à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™à¸•à¸±à¹‰à¸‡à¸„à¹ˆà¸²à¹€à¸›à¹‡à¸™ offline à¸à¹ˆà¸­à¸™ à¹à¸¥à¹‰à¸§à¸„à¹ˆà¸­à¸¢ online à¹€à¸¡à¸·à¹ˆà¸­à¸­à¸¢à¸¹à¹ˆà¸«à¸™à¹‰à¸² /dashboard
       publishOffline();
       const base = (function(){
         let b = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
@@ -46,21 +46,6 @@ const PresenceManager = () => {
       const normalized = p.startsWith(base) ? (p.slice(base.length) || "/") : p;
       if (normalized === "/dashboard") publishOnline();
 
-      // Publish current API/FW base (if any) as shared config for other clients
-      try {
-        const apiStored = (() => { try { return localStorage.getItem('tfct.apiBase') || ''; } catch { return ''; } })();
-        const fwStored  = (() => { try { return localStorage.getItem('tfct.fwBase')  || ''; } catch { return ''; } })();
-        const api = (apiStored || getApiBase() || '').replace(/\/$/, '');
-        const fw  = (fwStored  || getFwBase()  || '').replace(/\/$/, '');
-        const cfg: any = {};
-        if (api && /^https?:\/\//i.test(api)) cfg.api = api;
-        if (fw && /^https?:\/\//i.test(fw)) cfg.fw = fw;
-        if (Object.keys(cfg).length > 0) {
-          client.publish("TFCT_2_PE/web/config", JSON.stringify(cfg), { retain: true });
-        }
-      } catch {}
-
-      // Subscribe for shared config updates (retained)
       try { client.subscribe("TFCT_2_PE/web/config", { qos: 0 }); } catch {}
     });
     client.on("reconnect", publishOffline);
@@ -108,7 +93,7 @@ const PresenceManager = () => {
     return () => { try { client.off('message', onMessage as any); } catch {} };
   }, []);
 
-  // เปลี่ยนสถานะตาม path: online เฉพาะ /dashboard, นอกนั้น offline
+  // à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸ªà¸–à¸²à¸™à¸°à¸•à¸²à¸¡ path: online à¹€à¸‰à¸žà¸²à¸° /dashboard, à¸™à¸­à¸à¸™à¸±à¹‰à¸™ offline
   useEffect(() => {
     const client = clientRef.current;
     if (!client) return;
@@ -127,4 +112,5 @@ const PresenceManager = () => {
 };
 
 export default PresenceManager;
+
 

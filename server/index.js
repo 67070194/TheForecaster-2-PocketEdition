@@ -1,4 +1,4 @@
-import 'dotenv/config';
+﻿import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import mqtt from 'mqtt';
@@ -339,6 +339,7 @@ app.listen(PORT, () => {
 
 // Run MQTT ingest in background and keep reference for publishing
 const mqttClient = startIngest();
+let latestWebConfig = null;
 
 // Publish web shared config to MQTT retained topic
 app.post('/web/config', (req, res) => {
@@ -352,9 +353,20 @@ app.post('/web/config', (req, res) => {
     const payload = JSON.stringify({ ...(api ? { api } : {}), ...(fw ? { fw } : {}) });
     mqttClient.publish(`${BASE_TOPIC}/web/config`, payload, { retain: true, qos: 0 }, (err) => {
       if (err) return res.status(500).json({ error: String(err?.message || err) });
+      latestWebConfig = payload;
       res.json({ ok: true, topic: `${BASE_TOPIC}/web/config`, payload: JSON.parse(payload) });
     });
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) });
   }
 });
+
+// Periodically re-publish latest web config to reinforce retained value
+setInterval(() => {
+  try {
+    if (mqttClient && mqttClient.connected && latestWebConfig) {
+      mqttClient.publish(`${BASE_TOPIC}/web/config`, latestWebConfig, { retain: true, qos: 0 });
+    }
+  } catch {}
+}, 60000);
+
