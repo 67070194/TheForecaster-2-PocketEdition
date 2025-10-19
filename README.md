@@ -36,7 +36,17 @@
 1) ตรวจไฟล์ `.env` (ค่าเริ่มต้นเชื่อมต่อ HiveMQ public broker และ DB ภายใน compose)
 2) รันสแต็ก
 
-```sh
+   ตัวอย่างคำสั่ง (Command Prompt):
+
+   ```cmd
+   ren .env.example .env
+   # หรือคัดลอกไฟล์ตัวอย่าง
+   copy .env.example .env
+   ```
+
+   หมายเหตุ: ต้องมีไฟล์ `.env` ก่อนรัน มิฉะนั้น `docker compose up -d` จะล้มเหลวด้วย `env file ... .env not found`
+
+```cmd
 docker compose up -d
 ```
 
@@ -54,7 +64,7 @@ docker compose up -d
 
 พัฒนาเว็บแบบโลคัล (หากไม่ใช้ docker):
 
-```sh
+```cmd
 cd website
 npm install
 npm run dev
@@ -179,7 +189,7 @@ MQTT (ค่าเริ่มต้น):
 ## สภาพแวดล้อมสำหรับนักพัฒนา (ไม่ใช้ Docker)
 
 รันเซิร์ฟเวอร์:
-```sh
+```cmd
 cd server
 npm install
 npm run dev
@@ -187,10 +197,10 @@ npm run dev
 ```
 
 รันเว็บ:
-```sh
+```cmd
 cd website
 npm install
-export API_PROXY_TARGET=http://localhost:3001
+set API_PROXY_TARGET=http://localhost:3001
 npm run dev
 # เปิด http://localhost:8080
 ```
@@ -207,54 +217,3 @@ npm run dev
 
 ยังไม่ระบุไลเซนส์ในรีโปนี้ หากต้องการเพิ่ม สามารถแจ้งเพื่ออัปเดตไฟล์ได้
 
-## วิธีรันด้วย Docker (สำคัญ)
-
-ขั้นตอนการเริ่มระบบด้วย Docker หลังจากโคลนโปรเจกต์นี้:
-
-1) เปลี่ยนชื่อไฟล์สภาพแวดล้อมให้พร้อมใช้งาน
-
-   - ต้องมีไฟล์ `.env` ในโฟลเดอร์รากของโปรเจกต์ (ไฟล์นี้ถูกอ้างถึงโดย `env_file` ใน docker-compose)
-   - หากยังมีแค่ไฟล์ตัวอย่าง `.env.example` ให้ “ลบคำว่า .example” ออกโดยการเปลี่ยนชื่อเป็น `.env`
-
-   ตัวอย่างคำสั่ง (Windows PowerShell):
-
-   ```powershell
-   # เปลี่ยนชื่อ (แนะนำ): เก็บค่าเหมือนตัวอย่างและแก้ไขเพิ่มได้ภายหลัง
-   Rename-Item .env.example .env
-
-   # หรือถ้าอยากเก็บไฟล์ตัวอย่างไว้ด้วย ให้คัดลอกแทน
-   Copy-Item .env.example .env
-   ```
-
-   หมายเหตุ: หากไม่มีไฟล์ `.env` คำสั่ง `docker compose up -d` จะล้มเหลวด้วยข้อความทำนองว่า
-   `env file ... .env not found` แม้จะเปิด Docker Desktop แล้วก็ตาม
-
-2) เปิด Docker Desktop และรอจนสถานะเป็น Running
-
-3) สตาร์ทบริการทั้งหมดด้วย Docker Compose
-
-   ```powershell
-   docker compose up -d
-   ```
-
-4) ตรวจสอบการทำงานและเข้าใช้งาน
-
-   - ดูสถานะคอนเทนเนอร์: `docker compose ps`
-   - ดูบันทึกฝั่งเซิร์ฟเวอร์: `docker compose logs -f server`
-   - เปิดหน้าเว็บ: http://localhost:8080
-   - ตรวจสุขภาพ API: http://localhost:3001/health
-
-5) วิธีปิด/หยุดระบบ
-
-   - ปิดคอนเทนเนอร์ทั้งหมด (ไม่ลบข้อมูลใน volumes):
-     ```powershell
-     docker compose down
-     ```
-   - รีเซ็ตฐานข้อมูล/ลบ volumes (ระวัง: ข้อมูลถูกลบ):
-     ```powershell
-     docker compose down -v
-     docker compose up -d
-     ```
-
-ค่าปริยายใน `.env` (เช่น `BASE_TOPIC`, `MQTT_URL`, `DATABASE_URL`) เพียงพอสำหรับเริ่มต้นได้ทันที
-หากต้องการเชื่อมต่อ MQTT broker อื่น ให้แก้ไขค่าใน `.env` แล้วรัน `docker compose up -d` ใหม่
