@@ -66,6 +66,7 @@ services:
     container_name: iot_backup
     depends_on:
       - db
+      - server
     env_file:
       - ./.env
     environment:
@@ -75,10 +76,8 @@ services:
       - BACKUP_INTERVAL_SECONDS=${BACKUP_INTERVAL_SECONDS:-86400}
     volumes:
       - backups:/backups
-    entrypoint: ["/bin/sh","-c","set -e; apk add --no-cache postgresql15-client tzdata >/dev/null; echo 'Backup service started'; while true; do TS=$(date +%Y%m%d_%H%M%S); pg_dump -h db -U $POSTGRES_USER -d $POSTGRES_DB -F c -f /backups/iotdb_$TS.dump && echo Backup at $TS; sleep $BACKUP_INTERVAL_SECONDS; done"]
+    entrypoint: ["/bin/sh","-c","set -e; apk add --no-cache postgresql15-client tzdata >/dev/null; echo 'Backup service started'; while true; do TS=$$(date +%Y%m%d_%H%M%S); pg_dump -h db -U $POSTGRES_USER -d $POSTGRES_DB -F c -f /backups/iotdb_$$TS.dump && echo Backup at $$TS; sleep $BACKUP_INTERVAL_SECONDS; done"]
     restart: unless-stopped
-    depends_on:
-      - server
 
 volumes:
   timescale-data:
