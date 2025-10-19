@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import mqtt, { MqttClient } from "mqtt";
+import { getApiBase, getFwBase } from "@/lib/runtimeConfig";
 
 // PresenceManager
 // - ประกาศสถานะหน้าเว็บไปยัง MQTT ด้วย retained message (TFCT_2_PE/web/status)
@@ -44,6 +45,23 @@ const PresenceManager = () => {
       const p = window.location.pathname || "/";
       const normalized = p.startsWith(base) ? (p.slice(base.length) || "/") : p;
       if (normalized === "/dashboard") publishOnline();
+
+      // Publish current API/FW base (if any) as shared config for other clients
+      try {
+        const apiStored = (() => { try { return localStorage.getItem('tfct.apiBase') || ''; } catch { return ''; } })();
+        const fwStored  = (() => { try { return localStorage.getItem('tfct.fwBase')  || ''; } catch { return ''; } })();
+        const api = (apiStored || getApiBase() || '').replace(/\/$/, '');
+        const fw  = (fwStored  || getFwBase()  || '').replace(/\/$/, '');
+        const cfg: any = {};
+        if (api && /^https?:\/\//i.test(api)) cfg.api = api;
+        if (fw && /^https?:\/\//i.test(fw)) cfg.fw = fw;
+        if (Object.keys(cfg).length > 0) {
+          client.publish("TFCT_2_PE/web/config", JSON.stringify(cfg), { retain: true });
+        }
+      } catch {}
+
+      // Subscribe for shared config updates (retained)
+      try { client.subscribe("TFCT_2_PE/web/config", { qos: 0 }); } catch {}
     });
     client.on("reconnect", publishOffline);
 
@@ -61,6 +79,30 @@ const PresenceManager = () => {
       window.removeEventListener("pagehide", handleUnload);
       handleUnload();
     };
+  }, []);
+
+  // Listen for shared config and apply once if not set locally
+  useEffect(() => {
+    const client = clientRef.current;
+    if (!client) return;
+    const onMessage = (topic: string, payload: Buffer) => {
+      if (topic !== "TFCT_2_PE/web/config") return;
+      try {
+        const j = JSON.parse(payload.toString() || '{}');
+        const api = (j?.api && String(j.api).replace(/\/$/, '')) || '';
+        const fw  = (j?.fw  && String(j.fw).replace(/\/$/, '')) || '';
+        let changed = false;
+        try {
+          const hasApi = !!localStorage.getItem('tfct.apiBase');
+          const hasFw  = !!localStorage.getItem('tfct.fwBase');
+          if (!hasApi && api) { localStorage.setItem('tfct.apiBase', api); changed = true; }
+          if (!hasFw  && fw)  { localStorage.setItem('tfct.fwBase',  fw ); changed = true; }
+        } catch {}
+        if (changed) window.location.reload();
+      } catch {}
+    };
+    client.on('message', onMessage);
+    return () => { try { client.off('message', onMessage as any); } catch {} };
   }, []);
 
   // เปลี่ยนสถานะตาม path: online เฉพาะ /dashboard, นอกนั้น offline
