@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find . -maxdepth 3 -type f ( -name \"package.json\" -o -name \"README.md\" -o -name \"*.md\" ) ! -path \"*/node_modules/*\" ! -path \"*/.git/*\" ! -path \"*/dist/*\")",
+      "Bash(tree -L 2 -I 'node_modules|dist' --charset ascii)",
+      "Bash(git add README.md)",
+      "Bash(git add .claude/settings.local.json)",
+      "Bash(git commit -m \"$(cat <<''EOF''\ndocs: create comprehensive English README with deployment guides\n\n- Add complete project overview with system architecture diagrams\n- Document core principles and IoT best practices\n- Include detailed technology stack breakdown\n- Add two deployment options:\n  1. Full Docker stack for LAN/local environments\n  2. GitHub Pages + Cloudflare Tunnel for public deployments\n- Provide step-by-step installation and configuration guides\n- Include hardware setup with wiring diagrams\n- Add complete API reference and MQTT topic documentation\n- Include development workflows and debugging guides\n- Add comprehensive troubleshooting section\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
