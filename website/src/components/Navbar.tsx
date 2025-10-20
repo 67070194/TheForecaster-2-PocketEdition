@@ -52,7 +52,9 @@ export const Navbar = () => {
                     <Button
                       variant={isActive(item.path) ? "default" : "ghost"}
                       size="sm"
-                      className="flex items-center space-x-2 hover:bg-primary/10 hover:text-primary transition-colors"
+                      className={`flex items-center space-x-2 transition-colors ${
+                        !isActive(item.path) ? "hover:bg-primary/10 hover:text-primary" : ""
+                      }`}
                     >
                       <item.icon className="h-4 w-4" />
                       <span>{item.label}</span>
