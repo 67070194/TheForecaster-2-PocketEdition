@@ -48,18 +48,16 @@ export const Navbar = () => {
             <NavigationMenuList>
               {navItems.map((item) => (
                 <NavigationMenuItem key={item.path}>
-                  <NavigationMenuLink asChild>
-                    <Link to={item.path}>
-                      <Button 
-                        variant={isActive(item.path) ? "default" : "ghost"} 
-                        size="sm"
-                        className="flex items-center space-x-2"
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.label}</span>
-                      </Button>
-                    </Link>
-                  </NavigationMenuLink>
+                  <Link to={item.path}>
+                    <Button
+                      variant={isActive(item.path) ? "default" : "ghost"}
+                      size="sm"
+                      className="flex items-center space-x-2 hover:bg-primary/10 hover:text-primary transition-colors"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Button>
+                  </Link>
                 </NavigationMenuItem>
               ))}
             </NavigationMenuList>

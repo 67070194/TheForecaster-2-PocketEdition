@@ -658,10 +658,11 @@ export const Dashboard = () => {
     const base = 'TFCT_2_PE';
 
     client.on('connect', () => {
-      console.log('Connected to MQTT broker');
-      if (!hasShownConnectToast.current) {
-        hasShownConnectToast.current = true;
-      }
+      console.log('✅ Connected to MQTT broker');
+      toast({
+        title: "MQTT Connected",
+        description: "Successfully connected to broker"
+      });
       client.subscribe(`${base}/#`, { qos: 0 });
     });
 
