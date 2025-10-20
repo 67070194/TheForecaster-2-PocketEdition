@@ -238,7 +238,11 @@ app.post('/fw/upload', (req, res) => {
         const ip = pickLanIPv4();
         if (ip) hostOnly = ip;
       }
-      const fileUrl = `${xfProto}://${hostOnly}:${PORT}/fw/f/${encodeURIComponent(saved.path)}`;
+      // When behind reverse proxy (Cloudflare Tunnel), don't add port
+      // Local HTTP requests need port; HTTPS (tunnel) does not
+      const fileUrl = xfProto === 'https'
+        ? `${xfProto}://${hostOnly}/fw/f/${encodeURIComponent(saved.path)}`
+        : `${xfProto}://${hostOnly}:${PORT}/fw/f/${encodeURIComponent(saved.path)}`;
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.json({ url: fileUrl, name: saved.name, file: saved.path });
     } catch (e) {

@@ -26,3 +26,8 @@ dist-ssr
 
 # Local environment files
 .env
+
+# Uploads directory (firmware files)
+uploads/
+website/web/uploads/
+server/uploads/
