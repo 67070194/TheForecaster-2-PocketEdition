@@ -547,11 +547,26 @@ This will output a URL like: `https://random-name-1234.trycloudflare.com`
 
 #### Step 3: Configure GitHub Pages
 
-1. **Set Repository Variables**
+1. **Set Repository Variables** ⚠️ **IMPORTANT**
+
+   GitHub Actions needs these variables to build the website with the correct API endpoint.
+
+   **Steps**:
+   - Navigate to your repository on GitHub
    - Go to: `Settings → Secrets and variables → Actions → Variables`
-   - Add:
-     - `VITE_API_BASE` = `https://your-tunnel-url.trycloudflare.com` (or custom domain)
-     - `VITE_FW_BASE` = (optional, defaults to `VITE_API_BASE`)
+   - Click **"New repository variable"**
+   - Add these two variables:
+
+   | Name | Value Example | Description |
+   |------|---------------|-------------|
+   | `VITE_API_BASE` | `https://api.hcn.in.net` | Your Cloudflare tunnel URL or custom domain |
+   | `VITE_FW_BASE` | `https://api.hcn.in.net` | Firmware endpoint (usually same as API_BASE) |
+
+   **Why this is needed**:
+   - The website is built as **static files** during GitHub Actions
+   - API URLs must be **embedded at build time** (not runtime)
+   - Without these variables, website cannot connect to backend
+   - You'll see **"Database: Offline"** if missing or incorrect
 
 2. **Enable GitHub Pages**
    - Go to: `Settings → Pages`
@@ -843,12 +858,33 @@ ADC:
 - **Sampling Interval**: Adjust device reading interval (500ms - 600s)
 - **Firmware Update**: Upload `.bin` file for OTA
 
-#### Tester Mode (`/tester`)
+#### Tester Mode
 
 Simulated sensor data with realistic random variations. Useful for:
 - Testing UI without hardware
 - Demonstrating dashboard features
 - Frontend development
+- Database testing with historical data
+
+**Features**:
+- **Real-time simulation**: Generates live data with realistic value transitions
+- **Database simulation**: Populate 8 hours of test data with one click
+- **Randomized intervals**: Data points generated at variable intervals (±50% of update setting)
+- **Independent charts**: Switching modes completely resets charts (no overlapping timestamps)
+
+**Database Simulation Button**:
+Located next to "Update every" settings in Tester Mode:
+1. Enable **Tester Mode** toggle
+2. Click **"Simulate 8h DB Data"** button
+3. System generates ~3,000-5,000 data points covering 8 hours
+4. Data inserted in batches of 100 for performance
+5. Progress notifications at 20%, 40%, 60%, 80%, 100%
+6. Chart automatically reloads with full 8-hour history
+
+**Requirements for database simulation**:
+- Tester Mode must be ON
+- Database status must be "Online"
+- Backend must be running with `/api/readings/bulk` endpoint
 
 ### Device Control via MQTT
 
@@ -1356,6 +1392,37 @@ healthcheck:
 **Solution**:
 - Use named tunnel instead of quick tunnel
 - Follow "Option B: Named Tunnel" setup
+
+---
+
+## Recent Updates
+
+### v2.1.0 - Chart & Database Improvements
+
+**Chart Timestamp Fix**:
+- Fixed overlapping X-axis timestamps when switching between Tester Mode and Normal Mode
+- Each mode now maintains completely independent chart data with proper cleanup
+- Added `chartKey` state to force React remount of chart components on mode change
+- Eliminated race conditions during mode transitions
+
+**Database Simulation Feature**:
+- New **"Simulate 8h DB Data"** button in Tester Mode
+- Generates 3,000-5,000 realistic data points covering 8 hours
+- Randomized intervals (±50% of "Update every" setting)
+- Bulk API endpoint (`/api/readings/bulk`) for efficient batch insertion
+- Progress notifications during generation
+- Automatic chart reload after completion
+
+**GitHub Pages Configuration Improvements**:
+- Enhanced documentation for `VITE_API_BASE` and `VITE_FW_BASE` setup
+- Added clear explanation of why these variables are required
+- Improved troubleshooting for "Database: Offline" issues
+- Better examples for different tunnel types (quick, named, custom domain)
+
+**API Enhancements**:
+- New endpoint: `POST /api/readings/bulk` for batch data insertion
+- Transaction support for reliable bulk inserts
+- Configurable batch size (default: 100 readings per transaction)
 
 ---
 

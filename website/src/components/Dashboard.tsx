@@ -102,8 +102,10 @@ export const Dashboard = () => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [updateInterval, setUpdateInterval] = useState(5000);
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [chartKey, setChartKey] = useState(0); // Increment to force chart remount on mode change
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isTesterMode, setIsTesterMode] = useState(false); // Tester mode: do not use MQTT
+  const [isDbSimulating, setIsDbSimulating] = useState(false); // DB simulation: populate 8h of data
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [dbStatus, setDbStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const lastMqttDataRef = useRef<{ data: SensorData; timestamp: number } | null>(null); // stash last MQTT packet with ts
@@ -128,9 +130,16 @@ export const Dashboard = () => {
 
   // Reset chart data when switching (real/test)
   useEffect(() => {
+    // Clear all chart-related state and refs
     setChartData([]);
     lastDbTsRef.current = 0;
     historyLoadedRef.current = false;
+    lastMqttDataRef.current = null;
+    testerInitDoneRef.current = false;
+
+    // Increment chart key to force React to remount chart components
+    // This ensures complete cleanup and prevents data mixing between modes
+    setChartKey(prev => prev + 1);
   }, [isTesterMode]);
 
   // Database/Backend health status polling
@@ -192,6 +201,149 @@ export const Dashboard = () => {
     if (pm25 <= 55.4) return Math.round(((150 - 101) / (55.4 - 35.5)) * (pm25 - 35.5) + 101);
     if (pm25 <= 150.4) return Math.round(((200 - 151) / (150.4 - 55.5)) * (pm25 - 55.5) + 151);
     return Math.min(500, Math.round(((300 - 201) / (250.4 - 150.5)) * (pm25 - 150.5) + 201));
+  };
+
+  // Database simulation: populate 8 hours of test data with randomized intervals
+  const simulateDatabaseData = async () => {
+    if (!isTesterMode) {
+      toast({
+        title: "Database Simulation",
+        description: "Only available in Tester Mode",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isDbSimulating) {
+      toast({
+        title: "Already Simulating",
+        description: "Database simulation is already running",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsDbSimulating(true);
+
+    toast({
+      title: "Database Simulation Started",
+      description: "Generating 8 hours of data with random intervals..."
+    });
+
+    try {
+      const API_BASE = getApiBase();
+      const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+      const now = Date.now();
+      const startTime = now - EIGHT_HOURS_MS;
+
+      // Generate data points with randomized intervals
+      const dataPoints: any[] = [];
+      let currentTime = startTime;
+
+      // Helper functions for data generation
+      const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+      const stepFrom = (v: number, step: number) => v + (Math.random() * 2 - 1) * step;
+
+      // Starting values
+      let prevData = {
+        temperature: 25,
+        humidity: 70,
+        pressure: 1010.10,
+        pm1: 16,
+        pm25: 8,
+        pm10: 12
+      };
+
+      // Generate points until we reach current time
+      while (currentTime <= now) {
+        // Generate next data point with smooth transitions
+        const nextData = {
+          temperature: Number(clamp(stepFrom(prevData.temperature, 0.5), 15, 35).toFixed(2)),
+          humidity: Number(clamp(stepFrom(prevData.humidity, 2.0), 30, 85).toFixed(2)),
+          pressure: Number(clamp(stepFrom(prevData.pressure, 0.5), 995, 1030).toFixed(2)),
+          pm1: Math.round(clamp(stepFrom(prevData.pm1, 3), 0, 120)),
+          pm25: Math.round(clamp(stepFrom(prevData.pm25, 5), 0, 150)),
+          pm10: Math.round(clamp(stepFrom(prevData.pm10, 5), 0, 180)),
+        };
+
+        const aqi = calculateAQI(nextData.pm25);
+
+        dataPoints.push({
+          ts: new Date(currentTime).toISOString(),
+          t: nextData.temperature,
+          h: nextData.humidity,
+          p: nextData.pressure,
+          pm1: nextData.pm1,
+          pm25: nextData.pm25,
+          pm10: nextData.pm10,
+          aqi: aqi
+        });
+
+        prevData = nextData;
+
+        // Randomize interval: base updateInterval ± 50%
+        const randomInterval = updateInterval * (0.5 + Math.random());
+        currentTime += randomInterval;
+      }
+
+      // Send data to backend API in batches
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < dataPoints.length; i += BATCH_SIZE) {
+        const batch = dataPoints.slice(i, i + BATCH_SIZE);
+
+        const response = await fetch(`${API_BASE}/api/readings/bulk`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ readings: batch })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to insert batch ${i / BATCH_SIZE + 1}`);
+        }
+
+        // Show progress
+        const progress = Math.round(((i + batch.length) / dataPoints.length) * 100);
+        if (progress % 20 === 0 || i + BATCH_SIZE >= dataPoints.length) {
+          toast({
+            title: "Simulation Progress",
+            description: `${progress}% complete (${i + batch.length}/${dataPoints.length} points)`
+          });
+        }
+      }
+
+      toast({
+        title: "Simulation Complete",
+        description: `Successfully generated ${dataPoints.length} data points over 8 hours`
+      });
+
+      // Reload the chart with new data
+      const res = await fetch(`${API_BASE}/api/readings?minutes=480`);
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows)) {
+          const mapped = rows.map((r: any) => ({
+            timestamp: new Date(r.ts).toISOString(),
+            temperature: Number(r.t ?? NaN),
+            humidity: Number(r.h ?? NaN),
+            pressure: Number(r.p ?? NaN),
+            pm1: Number(r.pm1 ?? NaN),
+            pm25: Number(r.pm25 ?? NaN),
+            pm10: Number(r.pm10 ?? NaN),
+            aqi: Number(r.aqi ?? NaN),
+          })) as ChartData[];
+          setChartData(mapped);
+        }
+      }
+
+    } catch (error: any) {
+      toast({
+        title: "Simulation Failed",
+        description: error.message || "Failed to generate database data",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDbSimulating(false);
+    }
   };
 
   // Command: set RTC on device (disabled in Tester Mode)
@@ -643,7 +795,7 @@ export const Dashboard = () => {
         {/* Update Settings & Firmware (inline row) */}
         <div className="mb-6 flex flex-col items-center gap-3">
           <div className="flex w-full flex-col sm:flex-row items-center justify-center gap-3">
-            <UpdateSettings 
+            <UpdateSettings
               updateInterval={updateInterval}
               onUpdateIntervalChange={(interval: number) => {
                 setUpdateInterval(interval);
@@ -652,6 +804,18 @@ export const Dashboard = () => {
                 }
               }}
             />
+            {/* Database Simulation Button (only in Tester Mode) */}
+            {isTesterMode && (
+              <Button
+                onClick={simulateDatabaseData}
+                disabled={isDbSimulating || dbStatus !== 'online'}
+                className="flex items-center gap-2"
+                variant="outline"
+              >
+                <DbIcon size={16} />
+                {isDbSimulating ? 'Simulating...' : 'Simulate 8h DB Data'}
+              </Button>
+            )}
             {/* Firmware Update is hidden in Tester Mode */}
             {!isTesterMode && (
               <div className="flex items-center gap-3 bg-card/50 backdrop-blur-sm rounded-lg p-4 border border-border/50">
@@ -805,7 +969,7 @@ export const Dashboard = () => {
 
         {/* Charts */}
         <div className="mt-8 grid grid-cols-1 gap-6">
-          <SensorChart data={chartData} />
+          <SensorChart key={chartKey} data={chartData} />
         </div>
 
         {/* Footer */}

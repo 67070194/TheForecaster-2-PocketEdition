@@ -332,6 +332,54 @@ app.get('/api/readings', async (req, res) => {
   }
 });
 
+// POST /api/readings/bulk - Bulk insert for testing/simulation
+// Body: { readings: [ { ts, t, h, p, pm1, pm25, pm10, aqi }, ... ], mac?: string }
+app.post('/api/readings/bulk', async (req, res) => {
+  try {
+    const { readings, mac } = req.body;
+
+    if (!Array.isArray(readings) || readings.length === 0) {
+      return res.status(400).json({ error: 'Invalid or empty readings array' });
+    }
+
+    // Get or create device
+    const deviceMac = typeof mac === 'string' && mac.length > 0 ? mac : 'test-device';
+    const deviceId = await ensureDevice(deviceMac);
+
+    // Bulk insert using transaction
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      for (const reading of readings) {
+        const ts = new Date(reading.ts).toISOString();
+        const t = toNum(reading.t);
+        const h = toNum(reading.h);
+        const p = toNum(reading.p);
+        const pm1 = toNum(reading.pm1);
+        const pm25 = toNum(reading.pm25);
+        const pm10 = toNum(reading.pm10);
+        const aqi = toNum(reading.aqi);
+
+        await client.query(
+          'INSERT INTO readings(device_id, ts, t, h, p, pm1, pm25, pm10, aqi) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+          [deviceId, ts, t, h, p, pm1, pm25, pm10, aqi]
+        );
+      }
+
+      await client.query('COMMIT');
+      res.json({ ok: true, inserted: readings.length, deviceId });
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
 // Start
 app.listen(PORT, () => {
   console.log(`[HTTP] listening on :${PORT}`);
