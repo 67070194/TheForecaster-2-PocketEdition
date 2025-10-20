@@ -559,8 +559,8 @@ This will output a URL like: `https://random-name-1234.trycloudflare.com`
 
    | Name | Value Example | Description |
    |------|---------------|-------------|
-   | `VITE_API_BASE` | `https://api.hcn.in.net` | Your Cloudflare tunnel URL or custom domain |
-   | `VITE_FW_BASE` | `https://api.hcn.in.net` | Firmware endpoint (usually same as API_BASE) |
+   | `VITE_API_BASE` | `https://tfct_2_api.hcn.in.net` | Your Cloudflare tunnel URL or custom domain |
+   | `VITE_FW_BASE` | `https://tfct_2_api.hcn.in.net` | Firmware endpoint (usually same as API_BASE) |
 
    **Why this is needed**:
    - The website is built as **static files** during GitHub Actions
