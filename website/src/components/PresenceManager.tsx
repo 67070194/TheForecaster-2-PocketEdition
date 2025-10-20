@@ -34,7 +34,7 @@ const PresenceManager = () => {
     const publishOffline = () => client.publish("TFCT_2_PE/web/status", "offline", { retain: true });
     const publishOnline = () => client.publish("TFCT_2_PE/web/status", "online", { retain: true });
 
-    // Attach message handler early to catch retained config immediately after subscribe
+    // Attach message handler BEFORE connect to catch retained config immediately
     const onMessage = (topic: string, payload: Buffer) => {
       if (topic !== "TFCT_2_PE/web/config") return;
       try {
@@ -49,25 +49,48 @@ const PresenceManager = () => {
           if (fw  && fw  !== curFw)  { localStorage.setItem('tfct.fwBase',  fw );  changed = true; }
         } catch {}
         if (changed) {
+          console.log('[PresenceManager] Config updated via MQTT, reloading...', { api, fw });
           window.location.reload();
         }
-      } catch {}
+      } catch (err) {
+        console.error('[PresenceManager] Failed to parse config:', err);
+      }
     };
     client.on('message', onMessage);
 
+    // Critical: Subscribe FIRST, then publish presence to avoid race condition
     client.on("connect", () => {
-      try { client.subscribe("TFCT_2_PE/web/config", { qos: 0 }); } catch {}
-      const base = (function(){
-        let b = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
-        if (!b.startsWith("/")) b = "/";
-        return b;
-      })();
-      const p = window.location.pathname || "/";
-      const normalized = p.startsWith(base) ? (p.slice(base.length) || "/") : p;
-      if (normalized === "/dashboard") {
-        publishOnline();
-        try { client.publish("TFCT_2_PE/web/req_config", "1", { qos: 0 }); } catch {}
+      console.log('[PresenceManager] MQTT connected, subscribing to config...');
+
+      // Subscribe immediately
+      try {
+        client.subscribe("TFCT_2_PE/web/config", { qos: 0 }, (err) => {
+          if (err) {
+            console.error('[PresenceManager] Failed to subscribe:', err);
+          } else {
+            console.log('[PresenceManager] Subscribed to web/config');
+          }
+        });
+      } catch (err) {
+        console.error('[PresenceManager] Subscribe error:', err);
       }
+
+      // Wait 500ms for subscription to complete before publishing presence
+      setTimeout(() => {
+        const base = (function(){
+          let b = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+          if (!b.startsWith("/")) b = "/";
+          return b;
+        })();
+        const p = window.location.pathname || "/";
+        const normalized = p.startsWith(base) ? (p.slice(base.length) || "/") : p;
+
+        if (normalized === "/dashboard") {
+          console.log('[PresenceManager] Publishing online status and requesting config...');
+          publishOnline();
+          try { client.publish("TFCT_2_PE/web/req_config", "1", { qos: 0 }); } catch {}
+        }
+      }, 500);
     });
     client.on("reconnect", publishOffline);
 
