@@ -19,8 +19,6 @@ interface SensorChartProps {
 }
 
 const timeFrames = [
-  { value: 10, label: "Last 10 points" },
-  { value: 30, label: "Last 30 points" },
   { value: 60, label: "Last 1 hour" },
   { value: 240, label: "Last 4 hours" },
   { value: 480, label: "Last 8 hours" }
@@ -41,7 +39,7 @@ const sensorConfigs = [
 // - เลือกชนิด sensor ที่ต้องการดู
 // - ใช้ computeNiceTicks เพื่อจัดระยะแกน Y ให้เหมาะสมกับข้อมูลปัจจุบัน
 export const SensorChart = ({ data }: SensorChartProps) => {
-  const [timeFrame, setTimeFrame] = useState(30);
+  const [timeFrame, setTimeFrame] = useState(60); // Default 1 hour
   const [selectedSensor, setSelectedSensor] = useState<'temperature'|'humidity'|'pressure'|'pm1'|'pm25'|'pm10'|'aqi'>('temperature');
 
   // Persist selected time frame and sensor across refresh
@@ -50,7 +48,7 @@ export const SensorChart = ({ data }: SensorChartProps) => {
       const tf = localStorage.getItem('sensorChart.timeFrame');
       if (tf) {
         const n = Number(tf);
-        const allowed = [10, 30, 60, 180, 240, 480];
+        const allowed = [60, 240, 480]; // 1h, 4h, 8h
         if (allowed.includes(n)) setTimeFrame(n);
       }
       const ss = localStorage.getItem('sensorChart.selectedSensor');
@@ -62,7 +60,13 @@ export const SensorChart = ({ data }: SensorChartProps) => {
   useEffect(() => { try { localStorage.setItem('sensorChart.timeFrame', String(timeFrame)); } catch {} }, [timeFrame]);
   useEffect(() => { try { localStorage.setItem('sensorChart.selectedSensor', selectedSensor); } catch {} }, [selectedSensor]);
 
-  const chartData = data.slice(-timeFrame);
+  // Filter data by time duration (minutes) instead of point count
+  const now = Date.now();
+  const timeFrameMs = timeFrame * 60 * 1000; // Convert minutes to milliseconds
+  const chartData = data.filter(d => {
+    const ts = new Date(d.timestamp).getTime();
+    return (now - ts) <= timeFrameMs;
+  });
   const selectedConfig = sensorConfigs.find((c) => c.key === selectedSensor)!;
   const unitFor = (key: typeof selectedSensor): string => {
     switch (key) {
@@ -187,36 +191,20 @@ export const SensorChart = ({ data }: SensorChartProps) => {
                 dataKey="ts"
                 type="number"
                 scale="time"
-                domain={["auto", "auto"] as any}
-                tick={{ fontSize: 11 }}
+                domain={[
+                  () => now - timeFrameMs, // Fixed start: N hours ago
+                  () => now                 // Fixed end: now
+                ]}
+                tick={{ fontSize: 12 }}
                 tickFormatter={(value: number) => {
                   const date = new Date(value);
-                  // For large time ranges (>2 hours of data), show date + time
-                  const timeRange = chartDataPrepared.length > 0
-                    ? chartDataPrepared[chartDataPrepared.length - 1]?.ts - chartDataPrepared[0]?.ts
-                    : 0;
-                  const isLongRange = timeRange > 2 * 60 * 60 * 1000; // > 2 hours
-
-                  if (isLongRange) {
-                    return date.toLocaleString('th-TH', {
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    });
-                  } else {
-                    return date.toLocaleTimeString('th-TH', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                    });
-                  }
+                  return date.toLocaleTimeString('th-TH', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
                 }}
-                minTickGap={80}
-                interval="preserveStart"
-                angle={-45}
-                textAnchor="end"
-                height={80}
+                minTickGap={60}
+                interval="preserveStartEnd"
               />
               <YAxis
                 tick={{ fontSize: 12 }}

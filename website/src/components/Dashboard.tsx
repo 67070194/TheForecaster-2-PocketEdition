@@ -131,6 +131,22 @@ export const Dashboard = () => {
 
   // Reset chart data when switching (real/test)
   useEffect(() => {
+    // Auto-delete simulated data when leaving Tester Mode
+    if (!isTesterMode && hasSimulatedData) {
+      (async () => {
+        try {
+          const API_BASE = getApiBase();
+          await fetch(`${API_BASE}/api/readings/clear`, { method: 'DELETE' });
+          toast({
+            title: "Tester Mode Data Cleared",
+            description: "Simulated data has been automatically removed"
+          });
+        } catch (e) {
+          console.error('Failed to auto-clear simulated data:', e);
+        }
+      })();
+    }
+
     // Clear all chart-related state and refs
     setChartData([]);
     lastDbTsRef.current = 0;
@@ -142,7 +158,17 @@ export const Dashboard = () => {
     // Increment chart key to force React to remount chart components
     // This ensures complete cleanup and prevents data mixing between modes
     setChartKey(prev => prev + 1);
-  }, [isTesterMode]);
+  }, [isTesterMode, hasSimulatedData]);
+
+  // Cleanup simulated data when component unmounts (page navigation)
+  useEffect(() => {
+    return () => {
+      if (hasSimulatedData) {
+        const API_BASE = getApiBase();
+        fetch(`${API_BASE}/api/readings/clear`, { method: 'DELETE' }).catch(() => {});
+      }
+    };
+  }, [hasSimulatedData]);
 
   // Database/Backend health status polling
   useEffect(() => {
