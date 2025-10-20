@@ -871,26 +871,15 @@ export const Dashboard = () => {
                   <div className="text-sm font-medium">Database Simulation</div>
                   <div className="text-xs text-muted-foreground">Generate or remove 8h test data</div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={simulateDatabaseData}
-                    disabled={isDbSimulating || dbStatus !== 'online' || hasSimulatedData}
-                    className="gap-2"
-                  >
-                    {isDbSimulating ? 'Simulating...' : 'Simulate'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={removeSimulatedData}
-                    disabled={isDbSimulating || dbStatus !== 'online' || !hasSimulatedData}
-                    className="gap-2"
-                  >
-                    Remove
-                  </Button>
-                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={hasSimulatedData ? removeSimulatedData : simulateDatabaseData}
+                  disabled={isDbSimulating || dbStatus !== 'online'}
+                  className="gap-2"
+                >
+                  {isDbSimulating ? 'Processing...' : hasSimulatedData ? 'Remove' : 'Simulate'}
+                </Button>
               </div>
             )}
             {/* Firmware Update is hidden in Tester Mode */}
