@@ -20,44 +20,8 @@ const MQTT_PASSWORD = process.env.MQTT_PASSWORD || undefined;
 let sampleIntervalMs = Number(process.env.SAMPLE_INTERVAL_MS || '5000');
 const UPLOADS_DIR = process.env.UPLOADS_DIR || path.resolve(process.cwd(), 'uploads');
 
-// Latest shared web config payload (JSON string) to republish on demand
-let latestWebConfig = null;
-
 // DB
 const pool = new Pool({ connectionString: DATABASE_URL });
-
-// Load web config from database
-async function loadWebConfigFromDB() {
-  try {
-    const result = await pool.query('SELECT value FROM system_config WHERE key = $1', ['web_config']);
-    if (result.rowCount > 0 && result.rows[0].value) {
-      const config = result.rows[0].value;
-      // Validate it's valid JSON
-      JSON.parse(config);
-      latestWebConfig = config;
-      console.log('[DB] Loaded web config:', config);
-      return config;
-    }
-  } catch (err) {
-    console.error('[DB] Failed to load web config:', err.message);
-  }
-  return null;
-}
-
-// Save web config to database
-async function saveWebConfigToDB(configJson) {
-  try {
-    await pool.query(
-      'INSERT INTO system_config (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
-      ['web_config', configJson]
-    );
-    console.log('[DB] Saved web config:', configJson);
-    return true;
-  } catch (err) {
-    console.error('[DB] Failed to save web config:', err.message);
-    return false;
-  }
-}
 
 async function ensureDevice(mac) {
   // Upsert by mac and return id
@@ -100,37 +64,14 @@ function startIngest() {
   };
   const client = mqtt.connect(MQTT_URL, options);
 
-  client.on('connect', async () => {
+  client.on('connect', () => {
     console.log('[MQTT] connected', MQTT_URL);
     client.subscribe(`${BASE_TOPIC}/#`, { qos: 0 });
-
-    // Load config from database and publish to MQTT on startup
-    try {
-      const config = await loadWebConfigFromDB();
-      if (config && config !== '{}') {
-        console.log('[MQTT] Publishing loaded config to MQTT retained topic...');
-        client.publish(`${BASE_TOPIC}/web/config`, config, { retain: true, qos: 0 });
-      }
-    } catch (err) {
-      console.error('[MQTT] Failed to publish loaded config:', err.message);
-    }
   });
 
   client.on('message', async (topic, payload) => {
     const msg = payload.toString();
     try {
-      // Respond to config requests or presence: republish latest config
-      if (
-        topic === `${BASE_TOPIC}/web/req_config` ||
-        (topic === `${BASE_TOPIC}/web/status` && String(msg).trim().toLowerCase() === 'online')
-      ) {
-        try {
-          if (latestWebConfig) {
-            client.publish(`${BASE_TOPIC}/web/config`, latestWebConfig, { retain: true, qos: 0 });
-          }
-        } catch {}
-        return;
-      }
       // Update ingest sampling interval from UI command: BASE_TOPIC/cmd/interval (ms)
       if (topic === `${BASE_TOPIC}/cmd/interval`) {
         const ms = Number(msg);
@@ -396,50 +337,6 @@ app.listen(PORT, () => {
   console.log(`[HTTP] listening on :${PORT}`);
 });
 
-// Run MQTT ingest in background and keep reference for publishing
-const mqttClient = startIngest();
-
-// Publish web shared config to MQTT retained topic AND save to database
-app.post('/web/config', async (req, res) => {
-  try {
-    const apiRaw = (req.body?.api ?? '').toString();
-    const fwRaw = (req.body?.fw ?? '').toString();
-    const api = apiRaw.replace(/\/$/, '');
-    const fw = fwRaw.replace(/\/$/, '');
-    if (!api && !fw) return res.status(400).json({ error: 'Missing api or fw' });
-    if (!mqttClient || !mqttClient.connected) return res.status(503).json({ error: 'MQTT not connected' });
-
-    const payload = JSON.stringify({ ...(api ? { api } : {}), ...(fw ? { fw } : {}) });
-
-    // Save to database first (persistence)
-    const saved = await saveWebConfigToDB(payload);
-    if (!saved) {
-      console.warn('[Config] Failed to save to DB, continuing with MQTT publish...');
-    }
-
-    // Publish to MQTT (real-time distribution)
-    mqttClient.publish(`${BASE_TOPIC}/web/config`, payload, { retain: true, qos: 0 }, (err) => {
-      if (err) return res.status(500).json({ error: String(err?.message || err) });
-      latestWebConfig = payload;
-      console.log('[Config] Published to MQTT and saved to DB:', payload);
-      res.json({
-        ok: true,
-        topic: `${BASE_TOPIC}/web/config`,
-        payload: JSON.parse(payload),
-        persisted: saved
-      });
-    });
-  } catch (e) {
-    res.status(500).json({ error: String(e?.message || e) });
-  }
-});
-
-// Periodically re-publish latest web config to reinforce retained value
-setInterval(() => {
-  try {
-    if (mqttClient && mqttClient.connected && latestWebConfig) {
-      mqttClient.publish(`${BASE_TOPIC}/web/config`, latestWebConfig, { retain: true, qos: 0 });
-    }
-  } catch {}
-}, 60000);
+// Run MQTT ingest in background
+startIngest();
 

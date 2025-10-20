@@ -1,19 +1,20 @@
-﻿import { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import mqtt, { MqttClient } from "mqtt";
-import { getApiBase, getFwBase } from "@/lib/runtimeConfig";
 
 // PresenceManager
-// - à¸›à¸£à¸°à¸à¸²à¸¨à¸ªà¸–à¸²à¸™à¸°à¸«à¸™à¹‰à¸²à¹€à¸§à¹‡à¸šà¹„à¸›à¸¢à¸±à¸‡ MQTT à¸”à¹‰à¸§à¸¢ retained message (TFCT_2_PE/web/status)
-// - online à¹€à¸‰à¸žà¸²à¸°à¹€à¸¡à¸·à¹ˆà¸­ path à¹€à¸›à¹‡à¸™ "/dashboard"; à¸«à¸™à¹‰à¸²à¸—à¸µà¹ˆà¸­à¸·à¹ˆà¸™à¹€à¸›à¹‡à¸™ offline
-// - ESP32 à¹ƒà¸Šà¹‰à¸ªà¸–à¸²à¸™à¸°à¸™à¸µà¹‰à¹€à¸›à¹‡à¸™à¹€à¸‡à¸·à¹ˆà¸­à¸™à¹„à¸‚à¹€à¸›à¸´à¸”/à¸›à¸´à¸”à¸à¸²à¸£ publish à¸‚à¹‰à¸­à¸¡à¸¹à¸¥
-// - à¸•à¸±à¹‰à¸‡ Last Will à¹€à¸›à¹‡à¸™ offline à¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸«à¹‰ broker à¸•à¸±à¹‰à¸‡à¸„à¹ˆà¸²à¸­à¸±à¸•à¹‚à¸™à¸¡à¸±à¸•à¸´à¹€à¸¡à¸·à¹ˆà¸­à¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œà¸›à¸´à¸”à¹‚à¸”à¸¢à¹„à¸¡à¹ˆà¸›à¸à¸•à¸´
+// - Announces web dashboard presence to MQTT (TFCT_2_PE/web/status)
+// - "online" when on /dashboard; "offline" otherwise
+// - ESP32 can use this to enable/disable data publishing
+// - Sets Last Will & Testament to auto-publish "offline" if browser closes unexpectedly
+//
+// Note: MQTT config distribution removed - API URL now hardcoded at build time
 const PresenceManager = () => {
   const location = useLocation();
   const clientRef = useRef<MqttClient | null>(null);
   const unloadedRef = useRef(false);
 
-  // à¸ªà¸£à¹‰à¸²à¸‡ MQTT client à¸à¸±à¹ˆà¸‡à¹€à¸§à¹‡à¸š + à¸•à¸±à¹‰à¸‡à¸„à¹ˆà¸² LWT à¹€à¸›à¹‡à¸™ offline (retain)
+  // Create MQTT client with Last Will & Testament
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -34,66 +35,26 @@ const PresenceManager = () => {
     const publishOffline = () => client.publish("TFCT_2_PE/web/status", "offline", { retain: true });
     const publishOnline = () => client.publish("TFCT_2_PE/web/status", "online", { retain: true });
 
-    // Attach message handler BEFORE connect to catch retained config immediately
-    const onMessage = (topic: string, payload: Buffer) => {
-      if (topic !== "TFCT_2_PE/web/config") return;
-      try {
-        const j = JSON.parse(payload.toString() || '{}');
-        const api = (j?.api && String(j.api).replace(/\/$/, '')) || '';
-        const fw  = (j?.fw  && String(j.fw).replace(/\/$/, '')) || '';
-        let changed = false;
-        try {
-          const curApi = localStorage.getItem('tfct.apiBase') || '';
-          const curFw  = localStorage.getItem('tfct.fwBase')  || '';
-          if (api && api !== curApi) { localStorage.setItem('tfct.apiBase', api); changed = true; }
-          if (fw  && fw  !== curFw)  { localStorage.setItem('tfct.fwBase',  fw );  changed = true; }
-        } catch {}
-        if (changed) {
-          console.log('[PresenceManager] Config updated via MQTT, reloading...', { api, fw });
-          window.location.reload();
-        }
-      } catch (err) {
-        console.error('[PresenceManager] Failed to parse config:', err);
-      }
-    };
-    client.on('message', onMessage);
-
-    // Critical: Subscribe FIRST, then publish presence to avoid race condition
+    // Publish presence status on connect
     client.on("connect", () => {
-      console.log('[PresenceManager] MQTT connected, subscribing to config...');
+      const base = (function(){
+        let b = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+        if (!b.startsWith("/")) b = "/";
+        return b;
+      })();
+      const p = window.location.pathname || "/";
+      const normalized = p.startsWith(base) ? (p.slice(base.length) || "/") : p;
 
-      // Subscribe immediately
-      try {
-        client.subscribe("TFCT_2_PE/web/config", { qos: 0 }, (err) => {
-          if (err) {
-            console.error('[PresenceManager] Failed to subscribe:', err);
-          } else {
-            console.log('[PresenceManager] Subscribed to web/config');
-          }
-        });
-      } catch (err) {
-        console.error('[PresenceManager] Subscribe error:', err);
+      if (normalized === "/dashboard") {
+        publishOnline();
+      } else {
+        publishOffline();
       }
-
-      // Wait 500ms for subscription to complete before publishing presence
-      setTimeout(() => {
-        const base = (function(){
-          let b = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
-          if (!b.startsWith("/")) b = "/";
-          return b;
-        })();
-        const p = window.location.pathname || "/";
-        const normalized = p.startsWith(base) ? (p.slice(base.length) || "/") : p;
-
-        if (normalized === "/dashboard") {
-          console.log('[PresenceManager] Publishing online status and requesting config...');
-          publishOnline();
-          try { client.publish("TFCT_2_PE/web/req_config", "1", { qos: 0 }); } catch {}
-        }
-      }, 500);
     });
+
     client.on("reconnect", publishOffline);
 
+    // Handle browser close/tab close
     const handleUnload = () => {
       if (unloadedRef.current) return;
       unloadedRef.current = true;
@@ -107,15 +68,18 @@ const PresenceManager = () => {
       window.removeEventListener("beforeunload", handleUnload);
       window.removeEventListener("pagehide", handleUnload);
       handleUnload();
-      try { client.off('message', onMessage as any); } catch {}
     };
   }, []);
 
-  // à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸ªà¸–à¸²à¸™à¸°à¸•à¸²à¸¡ path: online à¹€à¸‰à¸žà¸²à¸° /dashboard, à¸™à¸­à¸à¸™à¸±à¹‰à¸™ offline
+  // Update presence based on current route
   useEffect(() => {
     const client = clientRef.current;
     if (!client) return;
-    const publish = (payload: "online" | "offline") => client.publish("TFCT_2_PE/web/status", payload, { retain: true });
+
+    const publish = (payload: "online" | "offline") => {
+      client.publish("TFCT_2_PE/web/status", payload, { retain: true });
+    };
+
     const base = (function(){
       let b = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
       if (!b.startsWith("/")) b = "/";
@@ -123,6 +87,7 @@ const PresenceManager = () => {
     })();
     const p = location.pathname || "/";
     const normalized = p.startsWith(base) ? (p.slice(base.length) || "/") : p;
+
     publish(normalized === "/dashboard" ? "online" : "offline");
   }, [location.pathname]);
 
@@ -130,6 +95,3 @@ const PresenceManager = () => {
 };
 
 export default PresenceManager;
-
-
-
