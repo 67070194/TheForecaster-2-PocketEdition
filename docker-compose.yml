@@ -44,22 +44,22 @@ services:
     restart: unless-stopped
 
   web:
-    image: node:20-alpine
+    build:
+      context: ./website
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE=${VITE_API_BASE:-}
+        - VITE_FW_BASE=${VITE_FW_BASE:-}
     container_name: iot_web
-    working_dir: /app
-    volumes:
-      - ./website:/app
-    command: sh -c "npm ci && npm run dev"
-    environment:
-      - API_PROXY_TARGET=http://server:3001
-      - HOST=0.0.0.0
+    depends_on:
+      - server
     ports:
-      - "8080:8080"
+      - "8080:80"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/ || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 3
     restart: unless-stopped
   backup:
     image: alpine:3.20
