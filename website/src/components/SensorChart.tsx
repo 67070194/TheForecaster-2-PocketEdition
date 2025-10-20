@@ -19,9 +19,11 @@ interface SensorChartProps {
 }
 
 const timeFrames = [
-  { value: 60, label: "Last 1 hour" },
-  { value: 240, label: "Last 4 hours" },
-  { value: 480, label: "Last 8 hours" }
+  { value: 10, label: "Last 10 points", isPoints: true },
+  { value: 30, label: "Last 30 points", isPoints: true },
+  { value: 60, label: "Last 1 hour", isPoints: false },
+  { value: 240, label: "Last 4 hours", isPoints: false },
+  { value: 480, label: "Last 8 hours", isPoints: false }
 ];
 
 const sensorConfigs = [
@@ -39,7 +41,7 @@ const sensorConfigs = [
 // - เลือกชนิด sensor ที่ต้องการดู
 // - ใช้ computeNiceTicks เพื่อจัดระยะแกน Y ให้เหมาะสมกับข้อมูลปัจจุบัน
 export const SensorChart = ({ data }: SensorChartProps) => {
-  const [timeFrame, setTimeFrame] = useState(60); // Default 1 hour
+  const [timeFrame, setTimeFrame] = useState(30); // Default 30 points
   const [selectedSensor, setSelectedSensor] = useState<'temperature'|'humidity'|'pressure'|'pm1'|'pm25'|'pm10'|'aqi'>('temperature');
 
   // Persist selected time frame and sensor across refresh
@@ -48,7 +50,7 @@ export const SensorChart = ({ data }: SensorChartProps) => {
       const tf = localStorage.getItem('sensorChart.timeFrame');
       if (tf) {
         const n = Number(tf);
-        const allowed = [60, 240, 480]; // 1h, 4h, 8h
+        const allowed = [10, 30, 60, 240, 480]; // All modes
         if (allowed.includes(n)) setTimeFrame(n);
       }
       const ss = localStorage.getItem('sensorChart.selectedSensor');
@@ -60,13 +62,25 @@ export const SensorChart = ({ data }: SensorChartProps) => {
   useEffect(() => { try { localStorage.setItem('sensorChart.timeFrame', String(timeFrame)); } catch {} }, [timeFrame]);
   useEffect(() => { try { localStorage.setItem('sensorChart.selectedSensor', selectedSensor); } catch {} }, [selectedSensor]);
 
-  // Filter data by time duration (minutes) instead of point count
+  // Determine if current mode is points-based or time-based
+  const currentMode = timeFrames.find(tf => tf.value === timeFrame);
+  const isPointsMode = currentMode?.isPoints ?? false;
+
+  // Filter data based on mode
   const now = Date.now();
-  const timeFrameMs = timeFrame * 60 * 1000; // Convert minutes to milliseconds
-  const chartData = data.filter(d => {
-    const ts = new Date(d.timestamp).getTime();
-    return (now - ts) <= timeFrameMs;
-  });
+  let chartData: ChartData[];
+
+  if (isPointsMode) {
+    // Points mode: Take last N points
+    chartData = data.slice(-timeFrame);
+  } else {
+    // Time mode: Filter by time duration
+    const timeFrameMs = timeFrame * 60 * 1000; // Convert minutes to milliseconds
+    chartData = data.filter(d => {
+      const ts = new Date(d.timestamp).getTime();
+      return (now - ts) <= timeFrameMs;
+    });
+  }
   const selectedConfig = sensorConfigs.find((c) => c.key === selectedSensor)!;
   const unitFor = (key: typeof selectedSensor): string => {
     switch (key) {
@@ -191,10 +205,11 @@ export const SensorChart = ({ data }: SensorChartProps) => {
                 dataKey="ts"
                 type="number"
                 scale="time"
-                domain={[
-                  () => now - timeFrameMs, // Fixed start: N hours ago
-                  () => now                 // Fixed end: now
-                ]}
+                domain={
+                  isPointsMode
+                    ? ["auto", "auto"] // Points mode: X-axis adjusts to data
+                    : [() => now - (timeFrame * 60 * 1000), () => now] // Time mode: Fixed range
+                }
                 tick={{ fontSize: 12 }}
                 tickFormatter={(value: number) => {
                   const date = new Date(value);
