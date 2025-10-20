@@ -188,16 +188,35 @@ export const SensorChart = ({ data }: SensorChartProps) => {
                 type="number"
                 scale="time"
                 domain={["auto", "auto"] as any}
-                tick={{ fontSize: 12 }}
-                tickFormatter={(value: number) =>
-                  new Date(value).toLocaleTimeString('th-TH', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                  })
-                }
-                minTickGap={50}
+                tick={{ fontSize: 11 }}
+                tickFormatter={(value: number) => {
+                  const date = new Date(value);
+                  // For large time ranges (>2 hours of data), show date + time
+                  const timeRange = chartDataPrepared.length > 0
+                    ? chartDataPrepared[chartDataPrepared.length - 1]?.ts - chartDataPrepared[0]?.ts
+                    : 0;
+                  const isLongRange = timeRange > 2 * 60 * 60 * 1000; // > 2 hours
+
+                  if (isLongRange) {
+                    return date.toLocaleString('th-TH', {
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    });
+                  } else {
+                    return date.toLocaleTimeString('th-TH', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    });
+                  }
+                }}
+                minTickGap={80}
                 interval="preserveStart"
+                angle={-45}
+                textAnchor="end"
+                height={80}
               />
               <YAxis
                 tick={{ fontSize: 12 }}
