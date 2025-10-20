@@ -106,6 +106,7 @@ export const Dashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isTesterMode, setIsTesterMode] = useState(false); // Tester mode: do not use MQTT
   const [isDbSimulating, setIsDbSimulating] = useState(false); // DB simulation: populate 8h of data
+  const [hasSimulatedData, setHasSimulatedData] = useState(false); // Track if DB has simulated data
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [dbStatus, setDbStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const lastMqttDataRef = useRef<{ data: SensorData; timestamp: number } | null>(null); // stash last MQTT packet with ts
@@ -136,6 +137,7 @@ export const Dashboard = () => {
     historyLoadedRef.current = false;
     lastMqttDataRef.current = null;
     testerInitDoneRef.current = false;
+    setHasSimulatedData(false); // Reset simulation flag
 
     // Increment chart key to force React to remount chart components
     // This ensures complete cleanup and prevents data mixing between modes
@@ -332,6 +334,7 @@ export const Dashboard = () => {
             aqi: Number(r.aqi ?? NaN),
           })) as ChartData[];
           setChartData(mapped);
+          setHasSimulatedData(true); // Mark as simulated
         }
       }
 
@@ -343,6 +346,62 @@ export const Dashboard = () => {
       });
     } finally {
       setIsDbSimulating(false);
+    }
+  };
+
+  // Remove simulated database data
+  const removeSimulatedData = async () => {
+    if (!isTesterMode) {
+      toast({
+        title: "Remove Data",
+        description: "Only available in Tester Mode",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isDbSimulating) {
+      toast({
+        title: "Cannot Remove",
+        description: "Wait for simulation to complete",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const API_BASE = getApiBase();
+
+      toast({
+        title: "Removing Data",
+        description: "Clearing simulated database data..."
+      });
+
+      const response = await fetch(`${API_BASE}/api/readings/clear`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to clear data');
+      }
+
+      const result = await response.json();
+
+      toast({
+        title: "Data Removed",
+        description: `Deleted ${result.deleted || 0} data points`
+      });
+
+      // Clear chart
+      setChartData([]);
+      setHasSimulatedData(false);
+
+    } catch (error: any) {
+      toast({
+        title: "Remove Failed",
+        description: error.message || "Failed to remove database data",
+        variant: "destructive"
+      });
     }
   };
 
@@ -804,17 +863,35 @@ export const Dashboard = () => {
                 }
               }}
             />
-            {/* Database Simulation Button (only in Tester Mode) */}
+            {/* Database Simulation (only in Tester Mode) */}
             {isTesterMode && (
-              <Button
-                onClick={simulateDatabaseData}
-                disabled={isDbSimulating || dbStatus !== 'online'}
-                className="flex items-center gap-2"
-                variant="outline"
-              >
-                <DbIcon size={16} />
-                {isDbSimulating ? 'Simulating...' : 'Simulate 8h DB Data'}
-              </Button>
+              <div className="flex items-center gap-3 bg-card/50 backdrop-blur-sm rounded-lg p-4 border border-border/50">
+                <DbIcon size={16} className="text-muted-foreground" />
+                <div>
+                  <div className="text-sm font-medium">Database Simulation</div>
+                  <div className="text-xs text-muted-foreground">Generate or remove 8h test data</div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={simulateDatabaseData}
+                    disabled={isDbSimulating || dbStatus !== 'online' || hasSimulatedData}
+                    className="gap-2"
+                  >
+                    {isDbSimulating ? 'Simulating...' : 'Simulate'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={removeSimulatedData}
+                    disabled={isDbSimulating || dbStatus !== 'online' || !hasSimulatedData}
+                    className="gap-2"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              </div>
             )}
             {/* Firmware Update is hidden in Tester Mode */}
             {!isTesterMode && (
@@ -881,18 +958,32 @@ export const Dashboard = () => {
                 : "ESP32: Connecting..."}
             </Badge>
             {/* Database status (via /health) */}
-            <Badge 
+            <Badge
               variant="default"
               className={`${
-                dbStatus === 'online'
-                  ? "bg-green-500 hover:bg-green-600"
-                  : dbStatus === 'offline'
-                  ? "bg-red-500 hover:bg-red-600"
-                  : "bg-yellow-500 hover:bg-yellow-600"
+                // In tester mode: red if no data, blue if simulated
+                isTesterMode
+                  ? hasSimulatedData
+                    ? "bg-blue-500 hover:bg-blue-600"
+                    : "bg-red-500 hover:bg-red-600"
+                  : // In normal mode: green if online, red if offline
+                    dbStatus === 'online'
+                    ? "bg-green-500 hover:bg-green-600"
+                    : dbStatus === 'offline'
+                    ? "bg-red-500 hover:bg-red-600"
+                    : "bg-yellow-500 hover:bg-yellow-600"
               } flex items-center gap-2`}
             >
               <DbIcon size={16} />
-              {dbStatus === 'online' ? 'Database: Online' : dbStatus === 'offline' ? 'Database: Offline' : 'Database: Checking...'}
+              {isTesterMode
+                ? hasSimulatedData
+                  ? 'Database: Simulated'
+                  : 'Database: Empty'
+                : dbStatus === 'online'
+                ? 'Database: Online'
+                : dbStatus === 'offline'
+                ? 'Database: Offline'
+                : 'Database: Checking...'}
             </Badge>
           </div>
       </div>

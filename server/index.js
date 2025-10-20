@@ -380,6 +380,16 @@ app.post('/api/readings/bulk', async (req, res) => {
   }
 });
 
+// DELETE /api/readings/clear - Clear all readings (for testing)
+app.delete('/api/readings/clear', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM readings');
+    res.json({ ok: true, deleted: result.rowCount });
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
 // Start
 app.listen(PORT, () => {
   console.log(`[HTTP] listening on :${PORT}`);

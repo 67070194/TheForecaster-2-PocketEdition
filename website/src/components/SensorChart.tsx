@@ -196,8 +196,8 @@ export const SensorChart = ({ data }: SensorChartProps) => {
                     second: '2-digit',
                   })
                 }
-                minTickGap={16}
-                interval="preserveStartEnd"
+                minTickGap={50}
+                interval="preserveStart"
               />
               <YAxis
                 tick={{ fontSize: 12 }}
