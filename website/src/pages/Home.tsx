@@ -57,9 +57,9 @@ const Home = () => {
           </Badge>
 
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-            Real-time <span className="text-primary">Sensor</span>
+            The Forecaster 2
             <br />
-            Monitoring
+            <span className="text-primary">[Pocket Edition]</span>
           </h1>
 
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">

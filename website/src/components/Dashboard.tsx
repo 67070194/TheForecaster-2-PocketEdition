@@ -1033,7 +1033,7 @@ export const Dashboard = () => {
 
         {/* Footer */}
         <div className="mt-12 text-center text-sm text-muted-foreground">
-          <p>IoT Environmental Monitoring System</p>
+          <p>The Forecaster 2 [Pocket Edition] - IoT Environmental Monitoring System</p>
         </div>
       </div>
     </div>
