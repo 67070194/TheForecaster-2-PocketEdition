@@ -942,7 +942,7 @@ export const Dashboard = () => {
                     : "bg-yellow-500 hover:bg-yellow-600"
               } flex items-center gap-2`}
             >
-              <DbIcon size={16} />
+              <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
               {isTesterMode
                 ? hasSimulatedData
                   ? 'History: Loaded'
