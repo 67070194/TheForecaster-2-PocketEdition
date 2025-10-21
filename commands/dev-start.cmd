@@ -51,7 +51,7 @@ echo   DEVELOPMENT MODE READY!
 echo ========================================
 echo.
 echo Local Services:
-echo - Frontend Dev: http://localhost:5173 (Vite - hot reload)
+echo - Frontend Dev: http://localhost:8081 (Vite - hot reload)
 echo - Backend API:  http://localhost:3001
 echo - Database:     PostgreSQL on localhost:5432
 echo.
@@ -62,7 +62,7 @@ echo - Local only (no remote access)
 echo.
 echo Press any key to open the dev server in your browser...
 pause >nul
-start http://localhost:5173
+start http://localhost:8081
 
 endlocal
 exit /b 0

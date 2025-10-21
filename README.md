@@ -280,7 +280,7 @@ BACKUP_INTERVAL_SECONDS=86400
 
 The project includes convenient command scripts for Windows users (located in `commands/` folder):
 
-### Development Mode (Port 5173)
+### Development Mode (Port 8081)
 **For local development with instant code changes (hot reload)**
 
 ```bash
@@ -293,7 +293,7 @@ commands\dev-stop.cmd
 
 **What it does:**
 - Starts Docker services (database + backend)
-- Opens Vite dev server on port 5173
+- Opens Vite dev server on port 8081
 - Hot reload enabled (instant code changes)
 - Local only (no remote access)
 - Perfect for coding and frontend development
