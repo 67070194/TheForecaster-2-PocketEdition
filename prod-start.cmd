@@ -1,19 +1,20 @@
 @echo off
-REM Start EVERYTHING: Docker + Cloudflare Tunnel
-REM - Local debugging at localhost:8080 (Docker nginx production build)
-REM - GitHub Pages (github.io) connects via tunnel for remote access
+REM Production Mode - Production build testing + remote access
+REM - Starts Docker with nginx production build (port 8080)
+REM - Starts Cloudflare tunnel for GitHub Pages remote access
+REM - For testing production builds and enabling remote connections
 setlocal
 
 set PORT=3001
 set DASH=https://67070194.github.io/TheForecaster-2-PocketEdition/dashboard
 
 echo ========================================
-echo   FULLSTACK ALL - Complete Environment
+echo   PRODUCTION MODE
 echo ========================================
 echo.
-echo Starting:
-echo  [1] Docker (database + backend + nginx frontend)
-echo  [2] Cloudflare tunnel (for GitHub Pages access)
+echo Starting production environment...
+echo  [1] Docker (database + backend + nginx production build)
+echo  [2] Cloudflare tunnel (GitHub Pages remote access)
 echo.
 
 REM ==========================================
@@ -63,28 +64,27 @@ REM ==========================================
 timeout /t 3 >nul
 echo.
 echo ========================================
-echo   ALL SERVICES STARTED!
+echo   PRODUCTION MODE READY!
 echo ========================================
 echo.
-echo Local Debugging:
-echo  - Website:       http://localhost:8080 (Docker nginx)
+echo Local Production Testing:
+echo  - Website:       http://localhost:8080 (nginx production build)
 echo  - Backend API:   http://localhost:%PORT%
 echo  - Database:      PostgreSQL on localhost:5432
 echo.
 echo Remote Access (GitHub Pages):
 echo  - Website:       %DASH%
 echo  - Connects to:   Your local backend via Cloudflare tunnel
+echo  - Tunnel:        forecaster-api -^> tfct_2_api.hcn.in.net
 echo.
-echo Open Windows:
-echo  [1] Cloudflare Tunnel (forecaster-api -^> api.hcn.in.net)
+echo Use Cases:
+echo  - Test production build locally (localhost:8080)
+echo  - Allow GitHub Pages to access your local backend
+echo  - Debug production issues before deploying
 echo.
-echo Tips:
-echo  - Debug locally at localhost:8080
-echo  - Test remotely at github.io
-echo  - Both use same local backend/database
-echo  - Rebuild frontend: docker compose up -d --build
+echo Note: Rebuild after frontend changes with: docker compose up -d --build
 echo.
-echo Press any key to open local website...
+echo Press any key to open production build...
 pause >nul
 start http://localhost:8080
 

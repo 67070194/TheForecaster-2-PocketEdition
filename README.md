@@ -16,6 +16,7 @@ An IoT Environmental Monitoring System for real-time air quality and environment
 - [Technology Stack](#technology-stack)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
+- [Quick Start Commands](#quick-start-commands)
 - [Deployment Options](#deployment-options)
   - [Option 1: Full Docker Stack (LAN/Local)](#option-1-full-docker-stack-lanlocal)
   - [Option 2: GitHub Pages Frontend + Cloudflare Tunnel](#option-2-github-pages-frontend--cloudflare-tunnel)
@@ -271,6 +272,71 @@ SAMPLE_INTERVAL_MS=5000
 
 # Backup Configuration
 BACKUP_INTERVAL_SECONDS=86400
+```
+
+---
+
+## Quick Start Commands
+
+The project includes convenient command scripts for Windows users:
+
+### Development Mode (Port 5173)
+**For local development with instant code changes (hot reload)**
+
+```bash
+# Start development environment
+dev-start.cmd
+
+# Stop development environment
+dev-stop.cmd
+```
+
+**What it does:**
+- Starts Docker services (database + backend)
+- Opens Vite dev server on port 5173
+- Hot reload enabled (instant code changes)
+- Local only (no remote access)
+- Perfect for coding and frontend development
+
+---
+
+### Production Mode (Port 8080)
+**For testing production builds and enabling remote GitHub Pages access**
+
+```bash
+# Start production environment + Cloudflare tunnel
+prod-start.cmd
+
+# Stop production environment + tunnel
+prod-stop.cmd
+```
+
+**What it does:**
+- Starts Docker with nginx production build on port 8080
+- Starts Cloudflare tunnel for remote access
+- Optimized, minified frontend (production ready)
+- Allows GitHub Pages to connect to your local backend
+- Requires rebuild after frontend changes
+
+---
+
+### Utility Commands
+
+```bash
+# Deploy to GitHub Pages
+deploy.cmd
+
+# Start just Docker services (backend + database + nginx)
+docker-start.cmd
+
+# Stop Docker services
+docker-stop.cmd
+
+# Start just Cloudflare tunnel
+tunnel-start.cmd
+
+# Stop Cloudflare tunnel
+tunnel-stop.cmd
 ```
 
 ---

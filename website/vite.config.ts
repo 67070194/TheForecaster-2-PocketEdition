@@ -143,7 +143,7 @@ function uploaderPlugin() {
           if (hostname === "localhost" || hostname === "127.0.0.1") {
             const ip = pickLanIPv4();
             if (ip) hostname = ip;
-            if (!port) port = String(server?.config?.server?.port || 8080);
+            if (!port) port = String(server?.config?.server?.port || 5173);
           }
           const hostForDevice = port ? `${hostname}:${port}` : hostname;
           const url = `${proto}://${hostForDevice}/f/${encodeURIComponent(saved.path)}`;
@@ -233,7 +233,7 @@ export default defineConfig(({ command }) => {
   base,
   server: {
     host: "::",
-    port: 8080,
+    port: 5173,
     proxy: {
       // Forward API calls to the backend server in dev
       "/api": {

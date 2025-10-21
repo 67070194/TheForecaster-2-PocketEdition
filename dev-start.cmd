@@ -1,10 +1,15 @@
 @echo off
-REM Start full stack locally for development
-REM - Opens Docker services (database, server)
-REM - Opens website dev server in browser
+REM Development Mode - Local development with hot reload
+REM - Starts Docker services (database + backend)
+REM - Opens Vite dev server (port 5173) with instant code changes
+REM - For coding/development only (not for production testing)
 setlocal
 
-echo [i] Starting fullstack development environment...
+echo ========================================
+echo   DEVELOPMENT MODE
+echo ========================================
+echo.
+echo Starting local development environment...
 echo.
 
 REM Start Docker services (database + backend server)
@@ -41,14 +46,21 @@ start "Frontend Dev Server" cmd /k "npm run dev"
 cd ..
 
 echo.
-echo [✓] Fullstack started successfully!
+echo ========================================
+echo   DEVELOPMENT MODE READY!
+echo ========================================
 echo.
-echo Services:
+echo Local Services:
+echo - Frontend Dev: http://localhost:5173 (Vite - hot reload)
 echo - Backend API:  http://localhost:3001
-echo - Frontend Dev: http://localhost:5173
 echo - Database:     PostgreSQL on localhost:5432
 echo.
-echo Press any key to open the frontend in your browser...
+echo Development Features:
+echo - Instant code changes (hot reload)
+echo - Fast development workflow
+echo - Local only (no remote access)
+echo.
+echo Press any key to open the dev server in your browser...
 pause >nul
 start http://localhost:5173
 

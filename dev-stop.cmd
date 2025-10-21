@@ -1,8 +1,10 @@
 @echo off
-REM Stop all fullstack local development services
+REM Stop Development Mode - Stops Vite dev server and Docker services
 setlocal
 
-echo [i] Stopping fullstack development environment...
+echo ========================================
+echo   STOPPING DEVELOPMENT MODE
+echo ========================================
 echo.
 
 REM Stop Docker services
@@ -25,7 +27,9 @@ if not errorlevel 1 (
 )
 
 echo.
-echo [✓] Fullstack stopped successfully!
+echo ========================================
+echo   DEVELOPMENT MODE STOPPED!
+echo ========================================
 
 endlocal
 exit /b 0

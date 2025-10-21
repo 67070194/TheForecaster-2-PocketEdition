@@ -1,9 +1,9 @@
 @echo off
-REM Stop all fullstack-all services
+REM Stop Production Mode - Stops Docker and Cloudflare tunnel
 setlocal
 
 echo ========================================
-echo   STOPPING ALL SERVICES
+echo   STOPPING PRODUCTION MODE
 echo ========================================
 echo.
 
@@ -29,7 +29,7 @@ if errorlevel 1 (
 
 echo.
 echo ========================================
-echo   ALL SERVICES STOPPED!
+echo   PRODUCTION MODE STOPPED!
 echo ========================================
 echo.
 
