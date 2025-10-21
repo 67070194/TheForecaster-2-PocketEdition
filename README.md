@@ -278,17 +278,17 @@ BACKUP_INTERVAL_SECONDS=86400
 
 ## Quick Start Commands
 
-The project includes convenient command scripts for Windows users:
+The project includes convenient command scripts for Windows users (located in `commands/` folder):
 
 ### Development Mode (Port 5173)
 **For local development with instant code changes (hot reload)**
 
 ```bash
 # Start development environment
-dev-start.cmd
+commands\dev-start.cmd
 
 # Stop development environment
-dev-stop.cmd
+commands\dev-stop.cmd
 ```
 
 **What it does:**
@@ -305,10 +305,10 @@ dev-stop.cmd
 
 ```bash
 # Start production environment + Cloudflare tunnel
-prod-start.cmd
+commands\prod-start.cmd
 
 # Stop production environment + tunnel
-prod-stop.cmd
+commands\prod-stop.cmd
 ```
 
 **What it does:**
@@ -324,19 +324,19 @@ prod-stop.cmd
 
 ```bash
 # Deploy to GitHub Pages
-deploy.cmd
+commands\deploy.cmd
 
 # Start just Docker services (backend + database + nginx)
-docker-start.cmd
+commands\docker-start.cmd
 
 # Stop Docker services
-docker-stop.cmd
+commands\docker-stop.cmd
 
 # Start just Cloudflare tunnel
-tunnel-start.cmd
+commands\tunnel-start.cmd
 
 # Stop Cloudflare tunnel
-tunnel-stop.cmd
+commands\tunnel-stop.cmd
 ```
 
 ---
@@ -355,7 +355,7 @@ This deployment runs the entire stack (database, server, web frontend) on a sing
 
 ```bash
 # Windows
-docker-start.cmd
+commands\docker-start.cmd
 
 # Linux/Mac
 docker compose up -d
