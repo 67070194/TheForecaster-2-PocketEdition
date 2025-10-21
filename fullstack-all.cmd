@@ -53,8 +53,8 @@ REM ==========================================
 echo [2/2] Starting Cloudflare tunnel...
 echo [i] This allows GitHub Pages to connect to your local backend
 timeout /t 2 >nul
-start "Cloudflare Tunnel" cmd /k "cloudflared tunnel --url http://localhost:%PORT%"
-echo [✓] Cloudflare tunnel starting...
+start "Cloudflare Tunnel" cmd /k "cloudflared tunnel run forecaster-api"
+echo [✓] Cloudflare tunnel starting (forecaster-api)...
 echo.
 
 REM ==========================================
@@ -76,7 +76,7 @@ echo  - Website:       %DASH%
 echo  - Connects to:   Your local backend via Cloudflare tunnel
 echo.
 echo Open Windows:
-echo  [1] Cloudflare Tunnel (shows *.trycloudflare.com URL)
+echo  [1] Cloudflare Tunnel (forecaster-api -^> api.hcn.in.net)
 echo.
 echo Tips:
 echo  - Debug locally at localhost:8080
