@@ -144,8 +144,13 @@ export const Dashboard = () => {
     setChartKey(prev => prev + 1);
   }, [isTesterMode]);
 
-  // Database/Backend health status polling
+  // Database/Backend health status polling (disabled in Tester Mode)
   useEffect(() => {
+    if (isTesterMode) {
+      setDbStatus('offline'); // No database connection in tester mode
+      return;
+    }
+
     let disposed = false;
     const poll = async () => {
       try {
@@ -251,14 +256,15 @@ export const Dashboard = () => {
           return v + change;
         };
 
-        // Starting values - realistic baseline
+        // Starting values - use current live sensor data for smooth transition
+        const currentLive = lastMqttDataRef.current?.data ?? sensorData;
         let prevData = {
-          temperature: 26.5,
-          humidity: 65,
-          pressure: 1013.25,
-          pm1: 8,
-          pm25: 12,
-          pm10: 18
+          temperature: Number.isFinite(currentLive.temperature) ? currentLive.temperature : 26.5,
+          humidity: Number.isFinite(currentLive.humidity) ? currentLive.humidity : 65,
+          pressure: Number.isFinite(currentLive.pressure) ? currentLive.pressure : 1013.25,
+          pm1: Number.isFinite(currentLive.pm1) ? currentLive.pm1 : 8,
+          pm25: Number.isFinite(currentLive.pm25) ? currentLive.pm25 : 12,
+          pm10: Number.isFinite(currentLive.pm10) ? currentLive.pm10 : 18
         };
 
         // Generate points until we reach current time
@@ -297,9 +303,14 @@ export const Dashboard = () => {
         setChartData(dataPoints);
         setHasSimulatedData(true);
 
+        // Debug: Calculate actual time range
+        const firstTs = new Date(dataPoints[0].timestamp).getTime();
+        const lastTs = new Date(dataPoints[dataPoints.length - 1].timestamp).getTime();
+        const actualHours = ((lastTs - firstTs) / (1000 * 60 * 60)).toFixed(2);
+
         toast({
           title: "Historical Data Generated",
-          description: `Created ${dataPoints.length} data points over 8 hours (in-memory only)`
+          description: `Created ${dataPoints.length} data points spanning ${actualHours} hours (in-memory only)`
         });
 
       } catch (error: any) {
@@ -497,12 +508,20 @@ export const Dashboard = () => {
     return uploadAndStartOtaWithFile(otaFile);
   };
 
-  // Tester mode - first fixed sample, then random
+  // Tester mode - live data generation (disabled when historical data exists)
   useEffect(() => {
     if (!isTesterMode) {
       testerInitDoneRef.current = false;
       return;
     }
+
+    // Don't generate live data if we have simulated historical data
+    if (hasSimulatedData) {
+      console.log('[Dashboard] Live data generation STOPPED - historical data exists');
+      return;
+    }
+
+    console.log('[Dashboard] Starting live data generation (updateInterval:', updateInterval, 'ms)');
 
     const generateData = (initial = false) => {
       const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -544,10 +563,18 @@ export const Dashboard = () => {
       lastMqttDataRef.current = { data: newData, timestamp: Date.now() };
 
       setChartData(prev => {
+        // CRITICAL: Never modify chart data if we have historical simulation
+        // This prevents live generation from destroying simulated 8-hour data
+        if (hasSimulatedData) {
+          console.warn('[Dashboard] Attempted to add live data point while historical data exists - BLOCKED');
+          return prev; // Return unchanged
+        }
+
         const newPoint = {
           timestamp: new Date().toISOString(),
           ...newData,
         };
+        // Only keep last 500 points for live tester data (not historical simulation)
         return [...prev.slice(-500), newPoint];
       });
     };
@@ -559,7 +586,7 @@ export const Dashboard = () => {
     const interval = setInterval(() => generateData(false), updateInterval);
 
     return () => clearInterval(interval);
-  }, [isTesterMode, updateInterval]);
+  }, [isTesterMode, updateInterval, hasSimulatedData]);
 
   // ????????? MQTT ?????????????????????? (????????????? Tester Mode)
   useEffect(() => {
@@ -727,7 +754,14 @@ export const Dashboard = () => {
   }, [isTesterMode]);
 
   // Update UI periodically - refresh display from latest MQTT data
+  // DISABLED in Tester Mode (tester has its own data generation)
   useEffect(() => {
+    // Skip this entire effect in Tester Mode
+    if (isTesterMode) {
+      console.log('[Dashboard] UI update effect SKIPPED - tester mode active');
+      return;
+    }
+
     const updateUI = () => {
       const ref = lastMqttDataRef.current;
       if (!ref) return;

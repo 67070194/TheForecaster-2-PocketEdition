@@ -67,19 +67,35 @@ export const SensorChart = ({ data }: SensorChartProps) => {
   const isPointsMode = currentMode?.isPoints ?? false;
 
   // Filter data based on mode
-  const now = Date.now();
   let chartData: ChartData[];
 
   if (isPointsMode) {
     // Points mode: Take last N points
     chartData = data.slice(-timeFrame);
   } else {
-    // Time mode: Filter by time duration
-    const timeFrameMs = timeFrame * 60 * 1000; // Convert minutes to milliseconds
-    chartData = data.filter(d => {
-      const ts = new Date(d.timestamp).getTime();
-      return (now - ts) <= timeFrameMs;
-    });
+    // Time mode: Filter by time duration from the LATEST data point (not current time)
+    // This ensures historical data shows correctly even if generated in the past
+    if (data.length === 0) {
+      chartData = [];
+    } else {
+      const latestTimestamp = new Date(data[data.length - 1].timestamp).getTime();
+      const timeFrameMs = timeFrame * 60 * 1000; // Convert minutes to milliseconds
+      chartData = data.filter(d => {
+        const ts = new Date(d.timestamp).getTime();
+        return (latestTimestamp - ts) <= timeFrameMs;
+      });
+
+      // Debug logging
+      if (data.length > 100) {
+        const firstDataTs = new Date(data[0].timestamp).getTime();
+        const lastDataTs = new Date(data[data.length - 1].timestamp).getTime();
+        const dataSpanHours = ((lastDataTs - firstDataTs) / (1000 * 60 * 60)).toFixed(2);
+        const chartSpanHours = chartData.length > 0
+          ? ((new Date(chartData[chartData.length - 1].timestamp).getTime() - new Date(chartData[0].timestamp).getTime()) / (1000 * 60 * 60)).toFixed(2)
+          : '0';
+        console.log(`[SensorChart] Total data: ${data.length} points (${dataSpanHours}h), Filtered: ${chartData.length} points (${chartSpanHours}h), TimeFrame: ${timeFrame}min`);
+      }
+    }
   }
   const selectedConfig = sensorConfigs.find((c) => c.key === selectedSensor)!;
   const unitFor = (key: typeof selectedSensor): string => {
