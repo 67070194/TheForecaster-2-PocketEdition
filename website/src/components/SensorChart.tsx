@@ -205,11 +205,7 @@ export const SensorChart = ({ data }: SensorChartProps) => {
                 dataKey="ts"
                 type="number"
                 scale="time"
-                domain={
-                  isPointsMode
-                    ? ["auto", "auto"] // Points mode: X-axis adjusts to data
-                    : [() => now - (timeFrame * 60 * 1000), () => now] // Time mode: Fixed range
-                }
+                domain={["auto", "auto"]} // Always use data range, not fixed time window
                 tick={{ fontSize: 12 }}
                 tickFormatter={(value: number) => {
                   const date = new Date(value);
