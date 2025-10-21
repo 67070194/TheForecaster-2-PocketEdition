@@ -1,4 +1,37 @@
-﻿import { useEffect, useState, useRef } from 'react';
+/**
+ * ========================================
+ * The Forecaster 2 - Pocket Edition
+ * Dashboard Component (Main UI Controller)
+ * ========================================
+ *
+ * Architecture:
+ * - Normal Mode: ESP32 → MQTT broker → This component → Display + Chart
+ * - Tester Mode: Local data generation → Display + Chart (no MQTT, no backend)
+ *
+ * Key Features:
+ * - Real-time sensor data visualization (temperature, humidity, pressure, PM, AQI)
+ * - MQTT subscription to HiveMQ broker for ESP32 sensor data
+ * - Dual-mode operation: Normal (live hardware) vs Tester (UI simulation)
+ * - Historical data loading from PostgreSQL backend (Normal Mode)
+ * - In-memory 8-hour data simulation (Tester Mode)
+ * - Firmware OTA updates via file upload and MQTT command
+ * - Database health monitoring
+ * - Configurable update intervals (500ms - 10 minutes)
+ *
+ * MQTT Topics:
+ * - Subscribe: TFCT_2_PE/# (all topics)
+ *   - TFCT_2_PE/status → "online" | "offline" (device connection status)
+ *   - TFCT_2_PE/data → JSON sensor data
+ *   - TFCT_2_PE/data/<mac> → Device-specific sensor data
+ *   - TFCT_2_PE/debug → OTA and debug events
+ * - Publish:
+ *   - TFCT_2_PE/cmd/time → Unix epoch (RTC sync)
+ *   - TFCT_2_PE/cmd/interval → Update interval in ms
+ *   - TFCT_2_PE/cmd/ota_now → Firmware URL for OTA update
+ *   - TFCT_2_PE/cmd/<mac>/ota_now → Device-specific OTA command
+ */
+
+import { useEffect, useState, useRef } from 'react';
 import mqtt from 'mqtt';
 import { SensorCard } from './SensorCard';
 import { SensorChart } from './SensorChart';
@@ -10,24 +43,26 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, Database as DbIcon } from 'lucide-react';
 import { getApiBase, getFwBase } from '@/lib/runtimeConfig';
 
-// Dashboard
-// - Reads data from ESP32 via MQTT (Tester Mode = no MQTT; UI simulates data)
-// - Subscribe: TFCT_2_PE/# for status, data, debug
-// - Publish: cmd/time, cmd/interval, cmd/ota_now (disabled in Tester Mode)
-// - Maintains chartData and renders SensorCard/SensorChart
-
+/**
+ * Interface: Current sensor readings displayed on cards
+ * All values are numbers; NaN indicates unavailable/no data
+ */
 interface SensorData {
-  temperature: number;
-  humidity: number;
-  pressure: number;
-  pm1: number;
-  pm25: number;
-  pm10: number;
-  aqi: number;
+  temperature: number;  // Temperature in °C
+  humidity: number;     // Relative humidity in %
+  pressure: number;     // Atmospheric pressure in hPa
+  pm1: number;          // PM1.0 particulate matter in µg/m³
+  pm25: number;         // PM2.5 particulate matter in µg/m³
+  pm10: number;         // PM10 particulate matter in µg/m³
+  aqi: number;          // Air Quality Index (0-500)
 }
 
+/**
+ * Interface: Historical data points for chart visualization
+ * Includes timestamp for time-series plotting
+ */
 interface ChartData {
-  timestamp: string;
+  timestamp: string;    // ISO 8601 timestamp
   temperature: number;
   humidity: number;
   pressure: number;
@@ -37,58 +72,92 @@ interface ChartData {
   aqi: number;
 }
 
-// Utility functions for status determination
+/**
+ * Temperature status determination based on comfort ranges
+ * @param temp - Temperature in °C
+ * @returns Status level for color-coded display
+ */
 const getTemperatureStatus = (temp: number) => {
   if (isNaN(temp)) return 'unavailable';
-  if (temp >= 18 && temp <= 24) return 'excellent';
-  if (temp >= 16 && temp <= 28) return 'good';
-  if (temp >= 12 && temp <= 32) return 'moderate';
-  if (temp >= 8 && temp <= 36) return 'poor';
-  return 'hazardous';
+  if (temp >= 18 && temp <= 24) return 'excellent';  // Optimal comfort zone
+  if (temp >= 16 && temp <= 28) return 'good';       // Acceptable range
+  if (temp >= 12 && temp <= 32) return 'moderate';   // Tolerable
+  if (temp >= 8 && temp <= 36) return 'poor';        // Uncomfortable
+  return 'hazardous';                                // Extreme conditions
 };
 
+/**
+ * Humidity status determination based on comfort ranges
+ * @param humidity - Relative humidity in %
+ * @returns Status level for color-coded display
+ */
 const getHumidityStatus = (humidity: number) => {
   if (isNaN(humidity)) return 'unavailable';
-  if (humidity >= 40 && humidity <= 60) return 'excellent';
-  if (humidity >= 30 && humidity <= 70) return 'good';
-  if (humidity >= 25 && humidity <= 75) return 'moderate';
-  if (humidity >= 20 && humidity <= 80) return 'poor';
-  return 'hazardous';
+  if (humidity >= 40 && humidity <= 60) return 'excellent';  // Optimal for health/comfort
+  if (humidity >= 30 && humidity <= 70) return 'good';       // Acceptable
+  if (humidity >= 25 && humidity <= 75) return 'moderate';   // Tolerable
+  if (humidity >= 20 && humidity <= 80) return 'poor';       // Risk of mold or dryness
+  return 'hazardous';                                        // Very dry or very humid
 };
 
+/**
+ * AQI status determination using EPA Air Quality Index standard
+ * @param aqi - Air Quality Index value
+ * @returns Status level matching EPA categories
+ */
 const getAQIStatus = (aqi: number) => {
   if (isNaN(aqi)) return 'unavailable';
-  if (aqi <= 50) return 'excellent';
-  if (aqi <= 100) return 'good';
-  if (aqi <= 150) return 'moderate';
-  if (aqi <= 200) return 'poor';
-  return 'hazardous';
+  if (aqi <= 50) return 'excellent';   // Good (Green)
+  if (aqi <= 100) return 'good';       // Moderate (Yellow)
+  if (aqi <= 150) return 'moderate';   // Unhealthy for Sensitive Groups (Orange)
+  if (aqi <= 200) return 'poor';       // Unhealthy (Red)
+  return 'hazardous';                  // Very Unhealthy / Hazardous (Purple/Maroon)
 };
 
+/**
+ * PM (Particulate Matter) status determination
+ * Based on WHO air quality guidelines for PM2.5
+ * @param pm - PM concentration in µg/m³
+ * @returns Status level for color-coded display
+ */
 const getPMStatus = (pm: number) => {
   if (isNaN(pm)) return 'unavailable';
-  if (pm <= 12) return 'excellent';
-  if (pm <= 35) return 'good';
-  if (pm <= 55) return 'moderate';
-  if (pm <= 150) return 'poor';
-  return 'hazardous';
+  if (pm <= 12) return 'excellent';   // WHO annual guideline
+  if (pm <= 35) return 'good';        // EPA 24h standard
+  if (pm <= 55) return 'moderate';    // Moderate pollution
+  if (pm <= 150) return 'poor';       // Unhealthy levels
+  return 'hazardous';                 // Very unhealthy / hazardous
 };
 
-const getWeatherFromPressure = (pressure: number): { 
-  status: 'excellent' | 'good' | 'moderate' | 'poor' | 'hazardous' | 'unavailable'; 
-  condition: string; 
-  icon: React.ReactNode 
+/**
+ * Weather condition inference from atmospheric pressure
+ * Uses barometric pressure to predict weather patterns
+ *
+ * @param pressure - Atmospheric pressure in hPa
+ * @returns Object with status, condition text, and icon
+ */
+const getWeatherFromPressure = (pressure: number): {
+  status: 'excellent' | 'good' | 'moderate' | 'poor' | 'hazardous' | 'unavailable';
+  condition: string;
+  icon: React.ReactNode
 } => {
   if (isNaN(pressure)) return { status: 'unavailable' as const, condition: 'No Data', icon: <Wind size={20} /> };
-  if (pressure >= 1022) return { status: 'excellent' as const, condition: 'High Pressure', icon: <Sun size={20} /> };
-  if (pressure >= 1013) return { status: 'good' as const, condition: 'Fair Weather', icon: <Cloud size={20} /> };
-  if (pressure >= 1000) return { status: 'moderate' as const, condition: 'Changing', icon: <Cloud size={20} /> };
-  if (pressure >= 990) return { status: 'poor' as const, condition: 'Rain Likely', icon: <CloudRain size={20} /> };
-  return { status: 'hazardous' as const, condition: 'Storm Risk', icon: <CloudRain size={20} /> };
+  if (pressure >= 1022) return { status: 'excellent' as const, condition: 'High Pressure', icon: <Sun size={20} /> };      // Clear, sunny
+  if (pressure >= 1013) return { status: 'good' as const, condition: 'Fair Weather', icon: <Cloud size={20} /> };          // Normal conditions (1013.25 = sea level standard)
+  if (pressure >= 1000) return { status: 'moderate' as const, condition: 'Changing', icon: <Cloud size={20} /> };          // Weather transition
+  if (pressure >= 990) return { status: 'poor' as const, condition: 'Rain Likely', icon: <CloudRain size={20} /> };        // Low pressure = rain
+  return { status: 'hazardous' as const, condition: 'Storm Risk', icon: <CloudRain size={20} /> };                         // Very low pressure = storm
 };
 
 export const Dashboard = () => {
-  // Core UI state (current values / timers / modes / connection)
+  // ========================================
+  // STATE: Core Sensor Data and Display
+  // ========================================
+
+  /**
+   * Current sensor readings displayed on cards
+   * Initialized with NaN (Not a Number) to indicate "no data" state
+   */
   const [sensorData, setSensorData] = useState<SensorData>({
     temperature: NaN,
     humidity: NaN,
@@ -99,37 +168,124 @@ export const Dashboard = () => {
     aqi: NaN
   });
 
+  /** Timestamp of last sensor data update (for display) */
   const [lastUpdate, setLastUpdate] = useState(new Date());
+
+  /** Update interval in milliseconds (500ms - 600000ms) */
   const [updateInterval, setUpdateInterval] = useState(5000);
+
+  /** Historical data points for chart visualization */
   const [chartData, setChartData] = useState<ChartData[]>([]);
-  const [chartKey, setChartKey] = useState(0); // Increment to force chart remount on mode change
+
+  /** Chart component key - increment to force remount when switching modes */
+  const [chartKey, setChartKey] = useState(0);
+
+  /** Current time for header clock display */
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isTesterMode, setIsTesterMode] = useState(false); // Tester mode: do not use MQTT
-  const [isDbSimulating, setIsDbSimulating] = useState(false); // DB simulation: populate 8h of data
-  const [hasSimulatedData, setHasSimulatedData] = useState(false); // Track if DB has simulated data
+
+  // ========================================
+  // STATE: Operating Modes
+  // ========================================
+
+  /**
+   * Tester Mode flag
+   * - false: Normal Mode (MQTT + Backend + Real ESP32)
+   * - true: Tester Mode (Local data generation, no MQTT/Backend)
+   */
+  const [isTesterMode, setIsTesterMode] = useState(false);
+
+  /** Flag indicating if 8-hour historical data simulation is running (Tester Mode only) */
+  const [isDbSimulating, setIsDbSimulating] = useState(false);
+
+  /** Flag indicating if simulated historical data exists in chart (Tester Mode only) */
+  const [hasSimulatedData, setHasSimulatedData] = useState(false);
+
+  // ========================================
+  // STATE: Connection Status
+  // ========================================
+
+  /**
+   * ESP32/MQTT connection status (Normal Mode only)
+   * - connecting: Waiting for device
+   * - connected: Device online
+   * - disconnected: Device offline
+   */
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+
+  /**
+   * Backend database health status
+   * - checking: Initial health check
+   * - online: /health endpoint responding, database OK
+   * - offline: Backend unreachable or database down
+   */
   const [dbStatus, setDbStatus] = useState<'checking' | 'online' | 'offline'>('checking');
-  const lastMqttDataRef = useRef<{ data: SensorData; timestamp: number } | null>(null); // stash last MQTT packet with ts
+
+  // ========================================
+  // REFS: MQTT and Data Management
+  // ========================================
+
+  /**
+   * Stores last received MQTT data packet with timestamp
+   * Used to throttle UI updates based on updateInterval
+   * Format: { data: SensorData, timestamp: number (milliseconds) }
+   */
+  const lastMqttDataRef = useRef<{ data: SensorData; timestamp: number } | null>(null);
+
+  /** Flag to prevent duplicate connection success toasts */
   const hasShownConnectToast = useRef(false);
-  const hasSyncedRtc = useRef(false); // sync RTC once after first data
-  const clientRef = useRef<mqtt.MqttClient | null>(null); // MQTT client instance
-  const disconnectTimerRef = useRef<NodeJS.Timeout | null>(null); // delay offline -> connecting
-  const testerInitDoneRef = useRef(false); // prevent double initial sample in tester mode
 
-  // OTA state
+  /** Flag to ensure RTC sync happens only once after first data packet */
+  const hasSyncedRtc = useRef(false);
+
+  /** MQTT client instance (Normal Mode only) */
+  const clientRef = useRef<mqtt.MqttClient | null>(null);
+
+  /** Timer for delayed "connecting" status after disconnect (prevents flickering) */
+  const disconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  /** Flag to prevent duplicate initial data generation in Tester Mode */
+  const testerInitDoneRef = useRef(false);
+
+  // ========================================
+  // STATE: Firmware OTA Updates
+  // ========================================
+
+  /** Selected firmware file for OTA update */
   const [otaFile, setOtaFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  // Devices discovered from data/<id>
-  const [devices, setDevices] = useState<string[]>([]);
-  const [targetDevice, setTargetDevice] = useState<string | ''>(''); // '' = all devices
-  const pendingOtaForRef = useRef<string | null>(null);
-  const lastUploadedFileRef = useRef<string | null>(null); // saved filename in /f/
-  // DB history tracking for initial load + reference
-  const lastDbTsRef = useRef<number>(0);
-  const historyLoadedRef = useRef<boolean>(false);
-  // DB-driven chart is disabled for now (reverted to MQTT-only)
 
-  // Reset chart data when switching (real/test)
+  /** Upload progress flag */
+  const [isUploading, setIsUploading] = useState(false);
+
+  /** List of discovered device MAC addresses (from data/<mac> topics) */
+  const [devices, setDevices] = useState<string[]>([]);
+
+  /** Target device for OTA update ('' = broadcast to all devices) */
+  const [targetDevice, setTargetDevice] = useState<string | ''>('');
+
+  /** Track which device is pending OTA to match debug events */
+  const pendingOtaForRef = useRef<string | null>(null);
+
+  /** Last uploaded firmware filename for cleanup after successful OTA */
+  const lastUploadedFileRef = useRef<string | null>(null);
+
+  // ========================================
+  // REFS: Database History Tracking
+  // ========================================
+
+  /** Timestamp of last data point loaded from database (to avoid duplicates) */
+  const lastDbTsRef = useRef<number>(0);
+
+  /** Flag indicating initial history load is complete */
+  const historyLoadedRef = useRef<boolean>(false);
+
+  // ========================================
+  // EFFECT: Reset Chart Data on Mode Switch
+  // ========================================
+
+  /**
+   * Clears all chart-related state when switching between Normal/Tester modes
+   * Prevents data mixing and ensures clean transition
+   */
   useEffect(() => {
     // Clear all chart-related state and refs (in-memory only, no backend calls)
     setChartData([]);
@@ -144,7 +300,14 @@ export const Dashboard = () => {
     setChartKey(prev => prev + 1);
   }, [isTesterMode]);
 
-  // Database/Backend health status polling (disabled in Tester Mode)
+  // ========================================
+  // EFFECT: Database Health Monitoring
+  // ========================================
+
+  /**
+   * Polls backend /health endpoint every 10 seconds (Normal Mode only)
+   * Monitors database connection status and backend availability
+   */
   useEffect(() => {
     if (isTesterMode) {
       setDbStatus('offline'); // No database connection in tester mode
@@ -159,6 +322,7 @@ export const Dashboard = () => {
         const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) throw new Error('bad status');
         const j = await res.json().catch(() => ({}));
+        // Check both ok flag and db flag from health response
         if (!disposed) setDbStatus(j && j.ok && j.db ? 'online' : 'offline');
       } catch {
         if (!disposed) setDbStatus('offline');
@@ -166,21 +330,31 @@ export const Dashboard = () => {
     };
     setDbStatus('checking');
     void poll();
-    const id = setInterval(poll, 10000);
+    const id = setInterval(poll, 10000); // Poll every 10 seconds
     return () => { disposed = true; clearInterval(id); };
   }, [isTesterMode]);
 
-  // Load historical data from DB once (Normal Mode) then keep appending from MQTT
+  // ========================================
+  // EFFECT: Load Historical Data from Database
+  // ========================================
+
+  /**
+   * Loads last 8 hours (480 minutes) of sensor data from PostgreSQL backend
+   * Runs once on mount in Normal Mode
+   * Populates chart with historical context before live data starts appending
+   */
   useEffect(() => {
     if (isTesterMode) return; // Tester Mode does not use DB
     let cancelled = false;
     (async () => {
       try {
         const API_BASE = getApiBase();
-        const res = await fetch(`${API_BASE}/api/readings?minutes=480`);
+        const res = await fetch(`${API_BASE}/api/readings?minutes=480`); // 8 hours
         if (!res.ok) return;
         const rows = await res.json();
         if (cancelled || !Array.isArray(rows)) return;
+
+        // Map backend response to ChartData format
         const mapped = rows.map((r: any) => ({
           timestamp: new Date(r.ts).toISOString(),
           temperature: Number(r.t ?? NaN),
@@ -191,7 +365,10 @@ export const Dashboard = () => {
           pm10: Number(r.pm10 ?? NaN),
           aqi: Number(r.aqi ?? NaN),
         })) as ChartData[];
+
         setChartData(mapped);
+
+        // Track last DB timestamp to avoid duplicate appending
         if (rows.length > 0) {
           lastDbTsRef.current = new Date(rows[rows.length - 1].ts).getTime();
         }
@@ -201,17 +378,40 @@ export const Dashboard = () => {
     return () => { cancelled = true; };
   }, [isTesterMode]);
 
-  // Calculate AQI from PM2.5 (approx. breakpoints)
+  // ========================================
+  // FUNCTION: Calculate AQI from PM2.5
+  // ========================================
+
+  /**
+   * Calculates Air Quality Index (AQI) from PM2.5 concentration
+   * Uses EPA AQI breakpoints (approximate)
+   *
+   * @param pm25 - PM2.5 concentration in µg/m³
+   * @returns AQI value (0-500+) or rounded integer
+   */
   const calculateAQI = (pm25: number) => {
-    if (pm25 <= 12) return Math.round((50 / 12) * pm25);
-    if (pm25 <= 35.4) return Math.round(((100 - 51) / (35.4 - 12.1)) * (pm25 - 12.1) + 51);
-    if (pm25 <= 55.4) return Math.round(((150 - 101) / (55.4 - 35.5)) * (pm25 - 35.5) + 101);
-    if (pm25 <= 150.4) return Math.round(((200 - 151) / (150.4 - 55.5)) * (pm25 - 55.5) + 151);
-    return Math.min(500, Math.round(((300 - 201) / (250.4 - 150.5)) * (pm25 - 150.5) + 201));
+    if (pm25 <= 12) return Math.round((50 / 12) * pm25);                                         // Good (0-50)
+    if (pm25 <= 35.4) return Math.round(((100 - 51) / (35.4 - 12.1)) * (pm25 - 12.1) + 51);      // Moderate (51-100)
+    if (pm25 <= 55.4) return Math.round(((150 - 101) / (55.4 - 35.5)) * (pm25 - 35.5) + 101);    // Unhealthy for Sensitive (101-150)
+    if (pm25 <= 150.4) return Math.round(((200 - 151) / (150.4 - 55.5)) * (pm25 - 55.5) + 151);  // Unhealthy (151-200)
+    return Math.min(500, Math.round(((300 - 201) / (250.4 - 150.5)) * (pm25 - 150.5) + 201));    // Very Unhealthy+ (201-500)
   };
 
-  // In-Memory simulation: populate 8 hours of test data (Tester Mode only - no backend needed)
+  // ========================================
+  // FUNCTION: Simulate 8 Hours of Historical Data
+  // ========================================
+
+  /**
+   * Generates 8 hours of realistic sensor data in-memory (Tester Mode only)
+   * - Creates smooth, realistic transitions between data points
+   * - Uses current live data as starting point for continuity
+   * - Randomizes intervals to simulate real-world sampling
+   * - No backend/database involved (all in-memory)
+   *
+   * This allows testing chart behavior without needing real hardware or backend
+   */
   const simulateDatabaseData = async () => {
+    // Validation: Only available in Tester Mode
     if (!isTesterMode) {
       toast({
         title: "Historical Data Simulation",
@@ -221,6 +421,7 @@ export const Dashboard = () => {
       return;
     }
 
+    // Prevent concurrent simulations
     if (isDbSimulating) {
       toast({
         title: "Already Simulating",
@@ -248,9 +449,10 @@ export const Dashboard = () => {
         const dataPoints: ChartData[] = [];
         let currentTime = startTime;
 
-        // Helper functions for realistic data generation
+        // Helper: Clamp value to valid range
         const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
-        // Smoother step function with smaller random variations
+
+        // Helper: Smooth random step (smaller changes = more realistic)
         const smoothStep = (v: number, maxStep: number) => {
           const change = (Math.random() * 2 - 1) * maxStep;
           return v + change;
@@ -271,12 +473,12 @@ export const Dashboard = () => {
         while (currentTime <= now) {
           // Generate next data point with smooth, realistic transitions
           const nextData = {
-            temperature: Number(clamp(smoothStep(prevData.temperature, 0.3), 18, 32).toFixed(2)),
-            humidity: Number(clamp(smoothStep(prevData.humidity, 1.5), 40, 80).toFixed(2)),
-            pressure: Number(clamp(smoothStep(prevData.pressure, 0.3), 1000, 1025).toFixed(2)),
-            pm1: Math.round(clamp(smoothStep(prevData.pm1, 2), 5, 80)),
-            pm25: Math.round(clamp(smoothStep(prevData.pm25, 3), 8, 120)),
-            pm10: Math.round(clamp(smoothStep(prevData.pm10, 4), 12, 150)),
+            temperature: Number(clamp(smoothStep(prevData.temperature, 0.3), 18, 32).toFixed(2)),     // ±0.3°C steps
+            humidity: Number(clamp(smoothStep(prevData.humidity, 1.5), 40, 80).toFixed(2)),           // ±1.5% steps
+            pressure: Number(clamp(smoothStep(prevData.pressure, 0.3), 1000, 1025).toFixed(2)),       // ±0.3 hPa steps
+            pm1: Math.round(clamp(smoothStep(prevData.pm1, 2), 5, 80)),                               // ±2 µg/m³ steps
+            pm25: Math.round(clamp(smoothStep(prevData.pm25, 3), 8, 120)),                            // ±3 µg/m³ steps
+            pm10: Math.round(clamp(smoothStep(prevData.pm10, 4), 12, 150)),                           // ±4 µg/m³ steps
           };
 
           const aqi = calculateAQI(nextData.pm25);
@@ -325,7 +527,14 @@ export const Dashboard = () => {
     }, 100);
   };
 
-  // Remove simulated in-memory data (Tester Mode only - no backend needed)
+  // ========================================
+  // FUNCTION: Remove Simulated Data
+  // ========================================
+
+  /**
+   * Clears simulated 8-hour historical data from memory (Tester Mode only)
+   * Does not affect backend database
+   */
   const removeSimulatedData = () => {
     if (!isTesterMode) {
       toast({
@@ -357,7 +566,15 @@ export const Dashboard = () => {
     });
   };
 
-  // Command: set RTC on device (disabled in Tester Mode)
+  // ========================================
+  // MQTT COMMAND: Sync RTC (Real-Time Clock)
+  // ========================================
+
+  /**
+   * Publishes current Unix epoch time to ESP32 for RTC synchronization
+   * ESP32 subscribes to TFCT_2_PE/cmd/time
+   * Disabled in Tester Mode (no MQTT connection)
+   */
   const publishSetRtcNow = () => {
     if (isTesterMode) {
       toast({
@@ -367,32 +584,43 @@ export const Dashboard = () => {
       return;
     }
     if (!clientRef.current) {
-      toast({ 
-        title: "MQTT Error", 
+      toast({
+        title: "MQTT Error",
         description: "Not connected to MQTT broker",
         variant: "destructive"
       });
       return;
     }
-    const epoch = Math.floor(Date.now() / 1000);
+    const epoch = Math.floor(Date.now() / 1000); // Unix timestamp in seconds
     const base = 'TFCT_2_PE';
     clientRef.current.publish(`${base}/cmd/time`, String(epoch), { qos: 0 }, (err) => {
       if (err) {
-        toast({ 
-          title: "MQTT Error", 
+        toast({
+          title: "MQTT Error",
           description: "Failed to send time command",
           variant: "destructive"
         });
       } else {
-        toast({ 
-          title: "RTC Synced", 
+        toast({
+          title: "RTC Synced",
           description: `Epoch time ${epoch} sent`
         });
       }
     });
   };
 
-  // Command: set update interval (ms) on device (disabled in Tester Mode)
+  // ========================================
+  // MQTT COMMAND: Set Update Interval
+  // ========================================
+
+  /**
+   * Publishes new update interval to ESP32
+   * ESP32 subscribes to TFCT_2_PE/cmd/interval
+   * Valid range: 500ms - 600000ms (0.5s - 10 minutes)
+   * Retained message ensures new devices receive the setting
+   *
+   * @param ms - Update interval in milliseconds
+   */
   const publishUpdateInterval = (ms: number) => {
     if (isTesterMode) {
       toast({
@@ -402,31 +630,41 @@ export const Dashboard = () => {
       return;
     }
     if (!clientRef.current) {
-      toast({ 
-        title: "MQTT Error", 
+      toast({
+        title: "MQTT Error",
         description: "Not connected to MQTT broker",
         variant: "destructive"
       });
       return;
     }
-    const clamped = Math.min(Math.max(ms, 500), 600000);
+    const clamped = Math.min(Math.max(ms, 500), 600000); // Clamp to valid range
     clientRef.current.publish("TFCT_2_PE/cmd/interval", String(clamped), { qos: 0, retain: true }, (err) => {
       if (err) {
-        toast({ 
-          title: "MQTT Error", 
+        toast({
+          title: "MQTT Error",
           description: "Failed to set interval",
           variant: "destructive"
         });
       } else {
-        toast({ 
-          title: "Interval Updated", 
+        toast({
+          title: "Interval Updated",
           description: `ESP32 will update every ${clamped} ms`
         });
       }
     });
   };
 
-  // Command: start Firmware OTA by URL (ESP32 accepts URL on SUB_OTA_NOW)
+  // ========================================
+  // MQTT COMMAND: Start Firmware OTA Update
+  // ========================================
+
+  /**
+   * Publishes firmware download URL to ESP32 to start OTA update
+   * ESP32 subscribes to TFCT_2_PE/cmd/ota_now (broadcast) or TFCT_2_PE/cmd/<mac>/ota_now (targeted)
+   * ESP32 will download .bin file from URL and flash firmware
+   *
+   * @param url - HTTP/HTTPS URL pointing to .bin firmware file
+   */
   const publishStartOta = (url: string) => {
     if (isTesterMode) {
       toast({ title: 'Tester Mode', description: 'MQTT disabled in Tester Mode' });
@@ -441,10 +679,14 @@ export const Dashboard = () => {
       toast({ title: 'Invalid URL', description: 'Must start with http:// or https://', variant: 'destructive' });
       return;
     }
+
+    // Determine topic based on target device selection
     const topic = targetDevice
-      ? `TFCT_2_PE/cmd/${targetDevice}/ota_now`
-      : 'TFCT_2_PE/cmd/ota_now';
+      ? `TFCT_2_PE/cmd/${targetDevice}/ota_now`  // Device-specific OTA
+      : 'TFCT_2_PE/cmd/ota_now';                 // Broadcast to all devices
+
     pendingOtaForRef.current = targetDevice || null;
+
     clientRef.current.publish(topic, trimmed, { qos: 1 }, (err) => {
       if (err) {
         toast({ title: 'MQTT Error', description: 'Failed to publish firmware command', variant: 'destructive' });
@@ -459,7 +701,22 @@ export const Dashboard = () => {
     });
   };
 
-  // Upload firmware to dev uploader then publish URL to start update (disabled in Tester Mode)
+  // ========================================
+  // FUNCTION: Upload Firmware and Start OTA
+  // ========================================
+
+  /**
+   * Uploads firmware .bin file to backend/Vite dev server, then publishes download URL via MQTT
+   *
+   * Flow:
+   * 1. POST file to /fw/upload endpoint
+   * 2. Backend saves file and returns download URL
+   * 3. Publish URL to TFCT_2_PE/cmd/ota_now
+   * 4. ESP32 downloads and flashes firmware
+   * 5. ESP32 publishes debug events to TFCT_2_PE/debug
+   *
+   * @param file - Firmware binary file (.bin)
+   */
   const uploadAndStartOtaWithFile = async (file: File) => {
     if (isTesterMode) {
       toast({ title: 'Tester Mode', description: 'MQTT/Firmware OTA disabled in Tester Mode' });
@@ -477,6 +734,7 @@ export const Dashboard = () => {
       }
       const json: { url: string; name?: string; file?: string } = await res.json();
       if (!json.url) throw new Error('Uploader did not return URL');
+
       // Remember saved filename for later cleanup
       try {
         lastUploadedFileRef.current = (json.file && String(json.file)) || (() => {
@@ -487,6 +745,7 @@ export const Dashboard = () => {
       } catch {
         lastUploadedFileRef.current = null;
       }
+
       publishStartOta(json.url);
     } catch (e: any) {
       toast({ title: 'Upload Error', description: String(e?.message || e), variant: 'destructive' });
@@ -495,7 +754,14 @@ export const Dashboard = () => {
     }
   };
 
-  // Backward-compatible wrapper (in case any callers still use it)
+  // ========================================
+  // FUNCTION: Legacy Wrapper for Upload
+  // ========================================
+
+  /**
+   * Backward-compatible wrapper for uploadAndStartOtaWithFile
+   * Uses otaFile state instead of direct file parameter
+   */
   const uploadAndStartOta = async () => {
     if (isTesterMode) {
       toast({ title: 'Tester Mode', description: 'MQTT/Firmware OTA disabled in Tester Mode' });
@@ -508,7 +774,20 @@ export const Dashboard = () => {
     return uploadAndStartOtaWithFile(otaFile);
   };
 
-  // Tester mode - live data generation (disabled when historical data exists)
+  // ========================================
+  // EFFECT: Tester Mode - Live Data Generation
+  // ========================================
+
+  /**
+   * Generates realistic sensor data locally in Tester Mode
+   * - Updates sensor cards with new values every updateInterval
+   * - Appends to chart ONLY if no historical simulation exists
+   * - Uses smooth random walks to simulate realistic sensor behavior
+   *
+   * When historical data exists (hasSimulatedData = true):
+   * - Sensor cards continue updating (live values)
+   * - Chart remains frozen with 8-hour historical data
+   */
   useEffect(() => {
     if (!isTesterMode) {
       testerInitDoneRef.current = false;
@@ -530,6 +809,7 @@ export const Dashboard = () => {
         return v + change;
       };
 
+      // Default starting values if no previous data exists
       const defaults = { temperature: 26.5, humidity: 65, pressure: 1013.25, pm1: 8, pm25: 12, pm10: 18 } as const;
       const prev = lastMqttDataRef.current?.data ?? sensorData;
       const base = (initial || !Number.isFinite(prev.temperature))
@@ -556,11 +836,13 @@ export const Dashboard = () => {
       next.aqi = calculateAQI(next.pm25);
       const newData = next as typeof defaults & { aqi: number } as SensorData;
 
+      // Always update sensor cards (live values)
       setSensorData(newData);
       setConnectionStatus('connected');
       setLastUpdate(new Date());
       lastMqttDataRef.current = { data: newData, timestamp: Date.now() };
 
+      // Update chart data ONLY if no historical simulation exists
       setChartData(prev => {
         // CRITICAL: Never modify chart data if we have historical simulation
         // This prevents live generation from destroying simulated 8-hour data
@@ -578,21 +860,39 @@ export const Dashboard = () => {
       });
     };
 
+    // Generate initial data point
     if (!testerInitDoneRef.current) {
       generateData(true);
       testerInitDoneRef.current = true;
     }
+
+    // Set interval for continuous data generation
     const interval = setInterval(() => generateData(false), updateInterval);
 
     return () => clearInterval(interval);
   }, [isTesterMode, updateInterval, hasSimulatedData]);
 
-  // ????????? MQTT ?????????????????????? (????????????? Tester Mode)
+  // ========================================
+  // EFFECT: MQTT Connection and Message Handling
+  // ========================================
+
+  /**
+   * Connects to HiveMQ public MQTT broker (Normal Mode only)
+   * Subscribes to TFCT_2_PE/# (all topics)
+   * Handles incoming messages for sensor data, status, and debug events
+   *
+   * Topics:
+   * - TFCT_2_PE/status → "online" | "offline"
+   * - TFCT_2_PE/data → JSON sensor data (temperature, humidity, etc.)
+   * - TFCT_2_PE/data/<mac> → Device-specific sensor data
+   * - TFCT_2_PE/debug → OTA and debug events (ota_ok, ota_fail, etc.)
+   */
   useEffect(() => {
     if (isTesterMode) {
       // Do not connect/publish any MQTT in tester mode
       return;
     }
+
     const client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
       clientId: 'esp32test01',
       clean: true,
@@ -602,19 +902,23 @@ export const Dashboard = () => {
     clientRef.current = client;
     const base = 'TFCT_2_PE';
 
+    // Event: MQTT broker connection established
     client.on('connect', () => {
       console.log('✅ Connected to MQTT broker');
       toast({
         title: "MQTT Connected",
         description: "Successfully connected to broker"
       });
-      client.subscribe(`${base}/#`, { qos: 0 });
+      client.subscribe(`${base}/#`, { qos: 0 }); // Subscribe to all topics under TFCT_2_PE
     });
 
+    // Event: Incoming MQTT message
     client.on('message', (topic, message) => {
       const messageStr = message.toString();
-      
-      // Handle status topic (plain text: "online" or "offline")
+
+      // ========================================
+      // TOPIC: Device Status (online/offline)
+      // ========================================
       if (topic === `${base}/status`) {
         if (messageStr === 'online') {
           // Clear any pending disconnect timer
@@ -627,8 +931,9 @@ export const Dashboard = () => {
         } else if (messageStr === 'offline') {
           setConnectionStatus('disconnected');
           console.log('Device status: offline');
-          
+
           // Set timer to change to "connecting" after 5 seconds
+          // Prevents status flickering on brief disconnections
           if (disconnectTimerRef.current) {
             clearTimeout(disconnectTimerRef.current);
           }
@@ -640,12 +945,15 @@ export const Dashboard = () => {
         return;
       }
 
-      // Handle sensor data topic (JSON) - supports MAC suffix: base/data/<mac>
+      // ========================================
+      // TOPIC: Sensor Data (JSON)
+      // ========================================
       if (topic === `${base}/data` || topic.startsWith(`${base}/data/`)) {
         try {
           const data = JSON.parse(messageStr);
           console.log('Received sensor data:', data);
-          
+
+          // Map incoming data to SensorData interface
           const newData = {
             temperature: data.t ?? NaN,
             humidity: data.h ?? NaN,
@@ -667,8 +975,8 @@ export const Dashboard = () => {
             client.publish(`${base}/cmd/time`, String(epoch), { qos: 0 }, (err) => {
               if (!err) {
                 console.log(`RTC synced: ${epoch}`);
-                toast({ 
-                  title: "RTC Auto-Synced", 
+                toast({
+                  title: "RTC Auto-Synced",
                   description: `Time synchronized with ESP32`
                 });
               }
@@ -679,11 +987,14 @@ export const Dashboard = () => {
         }
       }
 
-      // OTA debug events
+      // ========================================
+      // TOPIC: Debug Events (OTA status, errors)
+      // ========================================
       if (topic === `${base}/debug`) {
         try {
           const evt = JSON.parse(messageStr);
-          // Surface key firmware statuses as toasts
+
+          // Event: OTA Success or Failure
           if (evt && (evt.event === 'ota_ok' || evt.event === 'ota_fail')) {
             const id = evt.id as string | undefined;
             const match = pendingOtaForRef.current ? (id === pendingOtaForRef.current) : true;
@@ -692,13 +1003,14 @@ export const Dashboard = () => {
                 ? [
                     typeof evt.code === 'number' ? `code ${evt.code}` : undefined,
                     typeof evt.err === 'string' ? evt.err : undefined,
-                  ].filter(Boolean).join(' � ')
+                  ].filter(Boolean).join(' – ')
                 : undefined;
               toast({
                 title: 'Firmware',
                 description: evt.event === 'ota_ok' ? 'Update Successful' : 'Update Failed',
                 variant: evt.event === 'ota_ok' ? undefined : 'destructive',
               });
+
               // After successful OTA, delete older firmware files and keep the latest only
               if (evt.event === 'ota_ok' && lastUploadedFileRef.current) {
                 try {
@@ -712,35 +1024,43 @@ export const Dashboard = () => {
               }
               pendingOtaForRef.current = null;
             }
-          } else if (evt && evt.event === 'ota_write_mismatch') {
+          }
+          // Event: OTA Write Mismatch (partial write error)
+          else if (evt && evt.event === 'ota_write_mismatch') {
             const id = evt.id as string | undefined;
             const rd = evt.rd as number | undefined;
             const w  = evt.w as number | undefined;
             const details = [
               id ? `Device ${id}` : undefined,
               (typeof rd === 'number' && typeof w === 'number') ? `wrote ${w}/${rd} bytes` : undefined,
-            ].filter(Boolean).join(' � ');
+            ].filter(Boolean).join(' – ');
             toast({ title: 'Firmware', description: 'Write Error', variant: 'destructive' });
-          } else if (evt && evt.event === 'ota_begin_fail') {
+          }
+          // Event: OTA Begin Failure (flash partition error)
+          else if (evt && evt.event === 'ota_begin_fail') {
             const id = evt.id as string | undefined;
             const reason = evt.reason as string | undefined;
-            const details = [id ? `Device ${id}` : undefined, reason].filter(Boolean).join(' � ');
+            const details = [id ? `Device ${id}` : undefined, reason].filter(Boolean).join(' – ');
             toast({ title: 'Firmware', description: 'Begin Failed', variant: 'destructive' });
-          } else if (evt && evt.event === 'ota_http') {
+          }
+          // Event: OTA HTTP Error (download failed)
+          else if (evt && evt.event === 'ota_http') {
             const id = evt.id as string | undefined;
             const code = evt.code as number | undefined;
             const details = [id ? `Device ${id}` : undefined, typeof code === 'number' ? `HTTP ${code}` : undefined]
-              .filter(Boolean).join(' � ');
+              .filter(Boolean).join(' – ');
             toast({ title: 'Firmware', description: 'HTTP Error', variant: 'destructive' });
           }
         } catch {}
       }
     });
 
+    // Event: MQTT connection error
     client.on('error', (error) => {
       console.error('MQTT connection error:', error);
     });
 
+    // Cleanup on unmount or mode switch
     return () => {
       client.end();
       clientRef.current = null;
@@ -752,8 +1072,18 @@ export const Dashboard = () => {
     };
   }, [isTesterMode]);
 
-  // Update UI periodically - refresh display from latest MQTT data
-  // DISABLED in Tester Mode (tester has its own data generation)
+  // ========================================
+  // EFFECT: UI Update Interval (Normal Mode)
+  // ========================================
+
+  /**
+   * Periodically updates UI with latest MQTT data (Normal Mode only)
+   * - Refreshes sensor cards with current values
+   * - Appends new data points to chart
+   * - Throttles updates based on updateInterval setting
+   *
+   * DISABLED in Tester Mode (tester has its own data generation)
+   */
   useEffect(() => {
     // Skip this entire effect in Tester Mode
     if (isTesterMode) {
@@ -777,6 +1107,7 @@ export const Dashboard = () => {
           timestamp: new Date().toISOString(),
           ...ref.data
         };
+        // Keep last 1000 points in chart (prevents memory bloat)
         return [...prev.slice(-1000), newPoint];
       });
     };
@@ -790,9 +1121,14 @@ export const Dashboard = () => {
     return () => clearInterval(interval);
   }, [updateInterval, isTesterMode]);
 
-  // DB preload disabled (will reintroduce later once stable)
+  // ========================================
+  // EFFECT: Real-Time Clock Display
+  // ========================================
 
-  // Real-time clock
+  /**
+   * Updates header clock every second
+   * Shows current date and time in user's locale
+   */
   useEffect(() => {
     const clockInterval = setInterval(() => {
       setCurrentTime(new Date());
@@ -801,7 +1137,12 @@ export const Dashboard = () => {
     return () => clearInterval(clockInterval);
   }, []);
 
+  // Weather condition derived from pressure
   const weatherData = getWeatherFromPressure(sensorData.pressure);
+
+  // ========================================
+  // RENDER: Dashboard UI
+  // ========================================
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/30 p-4 sm:p-6 lg:p-8">
@@ -813,7 +1154,7 @@ export const Dashboard = () => {
           </h1>
           <div className="space-y-1">
             <p className="text-lg font-medium text-foreground">
-              {currentTime.toLocaleString('en-US', { 
+              {currentTime.toLocaleString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
@@ -888,7 +1229,7 @@ export const Dashboard = () => {
                   const el = document.getElementById('otaFileInline') as HTMLInputElement | null;
                   el?.click();
                 }} disabled={isUploading} className="gap-2">
-                  <Upload size={16} /> {isUploading ? 'Uploading�' : 'Upload'}
+                  <Upload size={16} /> {isUploading ? 'Uploading…' : 'Upload'}
                 </Button>
               </div>
             )}
@@ -904,7 +1245,7 @@ export const Dashboard = () => {
               {isTesterMode ? "Tester Mode" : "Normal Mode"}
             </Button>
             {/* ESP32 (MQTT) status */}
-            <Badge 
+            <Badge
               variant="default"
               className={`${
                 isTesterMode
@@ -975,7 +1316,7 @@ export const Dashboard = () => {
             title="Temperature"
             subtitle="Indoor Climate"
             value={isNaN(sensorData.temperature) ? 'N/A' : sensorData.temperature.toFixed(2)}
-            unit="�?C"
+            unit="°C"
             status={getTemperatureStatus(sensorData.temperature)}
             icon={<Thermometer size={20} />}
           />
@@ -1000,7 +1341,7 @@ export const Dashboard = () => {
 
           <SensorCard
             title="PM1.0"
-            subtitle="Particles < 1.0 �m"
+            subtitle="Particles < 1.0 μm"
             value={isNaN(sensorData.pm1) ? 'N/A' : sensorData.pm1.toFixed(0)}
             unit="μg/m³"
             status={getPMStatus(sensorData.pm1)}
@@ -1009,7 +1350,7 @@ export const Dashboard = () => {
 
           <SensorCard
             title="PM2.5"
-            subtitle="Particles < 2.5 �m"
+            subtitle="Particles < 2.5 μm"
             value={isNaN(sensorData.pm25) ? 'N/A' : sensorData.pm25.toFixed(0)}
             unit="μg/m³"
             status={getPMStatus(sensorData.pm25)}
@@ -1018,7 +1359,7 @@ export const Dashboard = () => {
 
           <SensorCard
             title="PM10"
-            subtitle="Particles < 10 �m"
+            subtitle="Particles < 10 μm"
             value={isNaN(sensorData.pm10) ? 'N/A' : sensorData.pm10.toFixed(0)}
             unit="μg/m³"
             status={getPMStatus(sensorData.pm10)}
@@ -1039,4 +1380,3 @@ export const Dashboard = () => {
     </div>
   );
 };
-
