@@ -564,7 +564,7 @@ const Documentation = () => {
             <CardContent className="space-y-3">
               <div className="bg-muted/50 p-3 rounded-lg">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="secondary">GET</Badge>
+                  <Badge variant="outline" className="bg-blue-100 dark:bg-blue-950 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300">GET</Badge>
                   <code className="text-sm">/health</code>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -574,7 +574,7 @@ const Documentation = () => {
 
               <div className="bg-muted/50 p-3 rounded-lg">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="secondary">GET</Badge>
+                  <Badge variant="outline" className="bg-blue-100 dark:bg-blue-950 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300">GET</Badge>
                   <code className="text-sm">/api/latest</code>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -584,7 +584,7 @@ const Documentation = () => {
 
               <div className="bg-muted/50 p-3 rounded-lg">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="secondary">GET</Badge>
+                  <Badge variant="outline" className="bg-blue-100 dark:bg-blue-950 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300">GET</Badge>
                   <code className="text-sm">/api/readings?minutes=480</code>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -594,7 +594,7 @@ const Documentation = () => {
 
               <div className="bg-muted/50 p-3 rounded-lg">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="default">POST</Badge>
+                  <Badge variant="outline" className="bg-green-100 dark:bg-green-950 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300">POST</Badge>
                   <code className="text-sm">/fw/upload</code>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -604,7 +604,7 @@ const Documentation = () => {
 
               <div className="bg-muted/50 p-3 rounded-lg">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="secondary">GET</Badge>
+                  <Badge variant="outline" className="bg-blue-100 dark:bg-blue-950 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300">GET</Badge>
                   <code className="text-sm">/fw/f/{'<filename>'}</code>
                 </div>
                 <p className="text-sm text-muted-foreground">
