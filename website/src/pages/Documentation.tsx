@@ -657,71 +657,6 @@ const Documentation = () => {
             </CardContent>
           </Card>
 
-          {/* Project Team */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Eye className="h-5 w-5 text-purple-500" />
-                Project Team
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {/* Team Member 1 */}
-                <div className="text-center space-y-3">
-                  <div className="w-32 h-32 mx-auto bg-gradient-to-br from-blue-500/20 to-purple-500/30 rounded-full flex items-center justify-center">
-                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center">
-                      <span className="text-3xl font-bold text-muted-foreground">A</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-lg">Student Name 1</div>
-                    <div className="text-sm text-muted-foreground">Student ID: 67000001</div>
-                  </div>
-                </div>
-
-                {/* Team Member 2 */}
-                <div className="text-center space-y-3">
-                  <div className="w-32 h-32 mx-auto bg-gradient-to-br from-green-500/20 to-blue-500/30 rounded-full flex items-center justify-center">
-                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center">
-                      <span className="text-3xl font-bold text-muted-foreground">B</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-lg">Student Name 2</div>
-                    <div className="text-sm text-muted-foreground">Student ID: 67000002</div>
-                  </div>
-                </div>
-
-                {/* Team Member 3 */}
-                <div className="text-center space-y-3">
-                  <div className="w-32 h-32 mx-auto bg-gradient-to-br from-orange-500/20 to-red-500/30 rounded-full flex items-center justify-center">
-                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center">
-                      <span className="text-3xl font-bold text-muted-foreground">C</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-lg">Student Name 3</div>
-                    <div className="text-sm text-muted-foreground">Student ID: 67000003</div>
-                  </div>
-                </div>
-
-                {/* Team Member 4 */}
-                <div className="text-center space-y-3">
-                  <div className="w-32 h-32 mx-auto bg-gradient-to-br from-purple-500/20 to-pink-500/30 rounded-full flex items-center justify-center">
-                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center">
-                      <span className="text-3xl font-bold text-muted-foreground">D</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-lg">Student Name 4</div>
-                    <div className="text-sm text-muted-foreground">Student ID: 67000004</div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Resources */}
           <Card>
             <CardHeader>
@@ -756,6 +691,75 @@ const Documentation = () => {
                   <div className="text-sm text-muted-foreground">Installation, deployment, and troubleshooting guides</div>
                 </div>
               </a>
+            </CardContent>
+          </Card>
+
+          {/* Project Team */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5 text-purple-500" />
+                Project Team
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Team Member 1 */}
+                <div className="text-center space-y-3">
+                  <div className="w-32 h-32 mx-auto bg-gradient-to-br from-blue-500/20 to-purple-500/30 rounded-full flex items-center justify-center">
+                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center">
+                      <span className="text-3xl font-bold text-muted-foreground">A</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-lg">Student Name 1</div>
+                    <div className="text-sm text-muted-foreground">ID: 67000001</div>
+                    <div className="text-xs text-muted-foreground mt-2">Role: Hardware & Firmware</div>
+                  </div>
+                </div>
+
+                {/* Team Member 2 */}
+                <div className="text-center space-y-3">
+                  <div className="w-32 h-32 mx-auto bg-gradient-to-br from-green-500/20 to-blue-500/30 rounded-full flex items-center justify-center">
+                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center">
+                      <span className="text-3xl font-bold text-muted-foreground">B</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-lg">Student Name 2</div>
+                    <div className="text-sm text-muted-foreground">ID: 67000002</div>
+                    <div className="text-xs text-muted-foreground mt-2">Role: Backend & Database</div>
+                  </div>
+                </div>
+
+                {/* Team Member 3 */}
+                <div className="text-center space-y-3">
+                  <div className="w-32 h-32 mx-auto bg-gradient-to-br from-orange-500/20 to-red-500/30 rounded-full flex items-center justify-center">
+                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center">
+                      <span className="text-3xl font-bold text-muted-foreground">C</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-lg">Student Name 3</div>
+                    <div className="text-sm text-muted-foreground">ID: 67000003</div>
+                    <div className="text-xs text-muted-foreground mt-2">Role: Frontend & UI/UX</div>
+                  </div>
+                </div>
+
+                {/* Team Member 4 */}
+                <div className="text-center space-y-3">
+                  <div className="w-32 h-32 mx-auto bg-gradient-to-br from-purple-500/20 to-pink-500/30 rounded-full flex items-center justify-center">
+                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center">
+                      <span className="text-3xl font-bold text-muted-foreground">D</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-lg">Student Name 4</div>
+                    <div className="text-sm text-muted-foreground">ID: 67000004</div>
+                    <div className="text-xs text-muted-foreground mt-2">Role: DevOps & Documentation</div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
