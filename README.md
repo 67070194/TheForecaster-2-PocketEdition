@@ -1244,6 +1244,31 @@ npm run build
 npm run preview
 ```
 
+### Code Documentation
+
+All major source files include comprehensive inline documentation:
+
+#### Backend (`server/index.js`)
+- File header with architecture overview
+- JSDoc for all functions with `@param` and `@returns`
+- MQTT topic documentation and message format examples
+- AQI calculation algorithm breakdown
+- Database connection and transaction patterns
+
+#### Frontend Components
+- **`Dashboard.tsx`**: Complete MQTT flow, dual-mode operation (Normal/Tester), state management, OTA upload flow
+- **`SensorChart.tsx`**: Filtering modes (points vs time), adaptive Y-axis algorithm, localStorage persistence, Recharts configuration
+
+#### Configuration Files
+- **`docker-compose.yml`**: Service documentation, health checks, environment variables, volume persistence
+- **`vite.config.ts`**: Dev server setup, firmware uploader plugin, build configuration
+
+#### Command Scripts
+- **`commands/dev-start.cmd`**: Development mode launcher with step-by-step breakdown
+- **`commands/prod-start.cmd`**: Production mode launcher with Cloudflare tunnel setup
+
+**Reading the code:** Start with `server/index.js` for backend logic, then `Dashboard.tsx` for frontend architecture. All files include section dividers and explanatory comments.
+
 ### Firmware Development Workflow
 
 1. **Make Code Changes**
