@@ -91,17 +91,17 @@ An IoT Environmental Monitoring System for real-time air quality and environment
 └──────────┼──────────┘
            │
            │ MQTT over WiFi
-           ▼
-   ┌───────────────────┐
-   │  HiveMQ Public    │
-   │  MQTT Broker      │
-   │ (broker.hivemq.   │
-   │     com:1883)     │
-   └───────┬───────────┘
            │
-      ┌────┴────┐
-      │         │
-      ▼         ▼
+           ▼
+┌──────────────────────────┐
+│      HiveMQ Public       │
+│       MQTT Broker        │
+│ (broker.hivemq.com:1883) │
+└───────┬──────────────────┘
+           │
+      ┌────┴───────┐
+      │            │
+      ▼            ▼
 ┌──────────┐  ┌──────────────────┐
 │ Node.js  │  │ React Web        │
 │ Server   │  │ Dashboard        │

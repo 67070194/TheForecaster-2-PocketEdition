@@ -30,7 +30,8 @@
       "Bash(docker exec:*)",
       "WebFetch(domain:api.hcn.in.net)",
       "Bash(powershell -Command \"Start-Process ''C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe''\")",
-      "Bash(./fullstack-start.cmd)"
+      "Bash(./fullstack-start.cmd)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
