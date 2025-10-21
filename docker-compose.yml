@@ -1,41 +1,89 @@
+# ========================================
+# The Forecaster 2 - Pocket Edition
+# Docker Compose Configuration
+# ========================================
+#
+# Architecture:
+# - Database (TimescaleDB): PostgreSQL with time-series optimization
+# - Server (Node.js): Express backend with MQTT subscription
+# - Web (Nginx): Production-optimized React frontend
+# - Backup (Alpine): Automated PostgreSQL backups
+#
+# Usage:
+# - Development: Run dev-start.cmd (Docker services + Vite dev server)
+# - Production: Run prod-start.cmd (Full Docker stack + Cloudflare tunnel)
+# - Stop: Run dev-stop.cmd or prod-stop.cmd
+#
+# Notes:
+# - All services use health checks for reliability
+# - Data persists in Docker volumes (timescale-data, backups)
+# - Web service proxies /api, /health, /fw to server
+
 services:
+  # ========================================
+  # Database Service: TimescaleDB (PostgreSQL + Time-Series)
+  # ========================================
+  # Purpose: Stores sensor readings with 8-hour retention policy
+  # Image: timescale/timescaledb:latest-pg16
+  # Port: 5432 (internal only, not exposed to host)
   db:
     image: timescale/timescaledb:latest-pg16
     container_name: iot_timescaledb
     environment:
+      # PostgreSQL authentication credentials
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=iotdb
+    # Health check: Verify PostgreSQL is accepting connections
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d iotdb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 10s   # Check every 10 seconds
+      timeout: 5s     # Wait 5 seconds for response
+      retries: 5      # Retry 5 times before marking unhealthy
+    # Restart policy: Always restart unless explicitly stopped
     restart: unless-stopped
     volumes:
+      # Persistent storage for PostgreSQL data
       - timescale-data:/var/lib/postgresql/data
+      # Initialization scripts (runs once on first startup)
+      # Creates hypertables, retention policies, and MQTT subscription logic
       - ./db/init:/docker-entrypoint-initdb.d
 
+  # ========================================
+  # Backend Service: Node.js Express + MQTT
+  # ========================================
+  # Purpose: REST API server and MQTT broker subscriber
+  # Features:
+  # - Subscribes to MQTT broker for ESP32 sensor data
+  # - Provides REST API endpoints (/api/latest, /api/readings, etc.)
+  # - Handles firmware OTA uploads (/fw/upload)
+  # - Throttled database writes to prevent flooding
   server:
     build:
       context: ./server
       dockerfile: Dockerfile
     container_name: iot_server
     depends_on:
-      - db
+      - db  # Wait for database to be ready
+    # Load environment variables from .env file
     env_file:
       - ./.env
     environment:
-      - PORT=${SERVER_PORT:-3001}
-      - BASE_TOPIC=${BASE_TOPIC}
-      - MQTT_URL=${MQTT_URL}
-      - MQTT_USERNAME=${MQTT_USERNAME}
+      # Server configuration
+      - PORT=${SERVER_PORT:-3001}                                           # HTTP port (default: 3001)
+      # MQTT configuration
+      - BASE_TOPIC=${BASE_TOPIC}                                            # MQTT base topic (e.g., TFCT_2_PE)
+      - MQTT_URL=${MQTT_URL}                                                # MQTT broker URL (wss://broker.hivemq.com:8884/mqtt)
+      - MQTT_USERNAME=${MQTT_USERNAME}                                      # MQTT authentication (optional)
       - MQTT_PASSWORD=${MQTT_PASSWORD}
-      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@db:5432/iotdb}
-      - UPLOADS_DIR=${UPLOADS_DIR:-/app/uploads}
-      - STATIC_DIR=${STATIC_DIR:-/app/public}
+      # Database connection
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@db:5432/iotdb}  # PostgreSQL connection string
+      # Storage paths
+      - UPLOADS_DIR=${UPLOADS_DIR:-/app/uploads}                            # Firmware upload directory
+      - STATIC_DIR=${STATIC_DIR:-/app/public}                               # Static file serving
     ports:
-      - "3001:3001"
+      - "3001:3001"   # Expose backend API on host port 3001
+    # Health check: Verify /health endpoint responds
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
       interval: 10s
@@ -43,42 +91,87 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # ========================================
+  # Frontend Service: Nginx + React Production Build
+  # ========================================
+  # Purpose: Serves production-optimized React app via Nginx
+  # Features:
+  # - Multi-stage build: Node (build) + Nginx (serve)
+  # - Gzip compression, caching, security headers
+  # - Proxies /api, /health, /fw to backend server
+  # - SPA routing (fallback to index.html)
   web:
     build:
       context: ./website
       dockerfile: Dockerfile
+      # Build-time arguments for API endpoint configuration
       args:
-        - VITE_API_BASE=${VITE_API_BASE:-}
-        - VITE_FW_BASE=${VITE_FW_BASE:-}
+        - VITE_API_BASE=${VITE_API_BASE:-}    # API base URL (empty = use Nginx proxy)
+        - VITE_FW_BASE=${VITE_FW_BASE:-}      # Firmware base URL (empty = use Nginx proxy)
     container_name: iot_web
     depends_on:
-      - server
+      - server  # Wait for backend to be ready
     ports:
-      - "8080:80"
+      - "8080:80"   # Expose Nginx on host port 8080 (maps to container port 80)
+    # Health check: Verify Nginx is serving content
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
     restart: unless-stopped
+
+  # ========================================
+  # Backup Service: Automated PostgreSQL Dumps
+  # ========================================
+  # Purpose: Periodic database backups with pg_dump
+  # Features:
+  # - Runs pg_dump every BACKUP_INTERVAL_SECONDS (default: 24 hours)
+  # - Saves compressed backups to /backups volume
+  # - Timestamp-based filenames (iotdb_YYYYMMDD_HHMMSS.dump)
+  # - Uses PostgreSQL 15 client from Alpine Linux
   backup:
     image: alpine:3.20
     container_name: iot_backup
     depends_on:
-      - db
-      - server
+      - db      # Wait for database
+      - server  # Wait for server (ensures full stack is ready)
     env_file:
       - ./.env
     environment:
+      # PostgreSQL connection parameters
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_DB=${POSTGRES_DB:-iotdb}
-      - PGPASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - BACKUP_INTERVAL_SECONDS=${BACKUP_INTERVAL_SECONDS:-86400}
+      - PGPASSWORD=${POSTGRES_PASSWORD:-postgres}  # Password via environment (pg_dump reads this)
+      # Backup schedule (seconds between backups)
+      - BACKUP_INTERVAL_SECONDS=${BACKUP_INTERVAL_SECONDS:-86400}  # Default: 24 hours (86400 seconds)
     volumes:
+      # Persistent storage for backups
       - backups:/backups
+    # Custom entrypoint: Install pg_dump, then loop backup process
+    # Breakdown:
+    # 1. Install postgresql15-client and tzdata (silent output)
+    # 2. Print startup message
+    # 3. Infinite loop:
+    #    - Generate timestamp (YYYYMMDD_HHMMSS)
+    #    - Run pg_dump with custom format (-F c) to /backups
+    #    - Print success message
+    #    - Sleep for BACKUP_INTERVAL_SECONDS
     entrypoint: ["/bin/sh","-c","set -e; apk add --no-cache postgresql15-client tzdata >/dev/null; echo 'Backup service started'; while true; do TS=$$(date +%Y%m%d_%H%M%S); pg_dump -h db -U $POSTGRES_USER -d $POSTGRES_DB -F c -f /backups/iotdb_$$TS.dump && echo Backup at $$TS; sleep $BACKUP_INTERVAL_SECONDS; done"]
     restart: unless-stopped
 
+# ========================================
+# Docker Volumes: Persistent Storage
+# ========================================
+# These volumes persist data across container restarts and updates
 volumes:
+  # TimescaleDB data storage
+  # Contains all PostgreSQL/TimescaleDB data files
+  # Survives container removal (unless explicitly deleted with docker volume rm)
   timescale-data:
+
+  # Database backup storage
+  # Contains pg_dump files generated by backup service
+  # Format: iotdb_YYYYMMDD_HHMMSS.dump
+  # To restore: pg_restore -h localhost -U postgres -d iotdb -F c /backups/<file>.dump
   backups:
