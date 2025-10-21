@@ -515,13 +515,12 @@ export const Dashboard = () => {
       return;
     }
 
-    // Don't generate live data if we have simulated historical data
+    // Log the mode
     if (hasSimulatedData) {
-      console.log('[Dashboard] Live data generation STOPPED - historical data exists');
-      return;
+      console.log('[Dashboard] Live sensor updates ONLY (chart frozen) - historical data exists');
+    } else {
+      console.log('[Dashboard] Live data generation with chart updates (updateInterval:', updateInterval, 'ms)');
     }
-
-    console.log('[Dashboard] Starting live data generation (updateInterval:', updateInterval, 'ms)');
 
     const generateData = (initial = false) => {
       const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -565,9 +564,9 @@ export const Dashboard = () => {
       setChartData(prev => {
         // CRITICAL: Never modify chart data if we have historical simulation
         // This prevents live generation from destroying simulated 8-hour data
+        // But sensor card values continue updating normally
         if (hasSimulatedData) {
-          console.warn('[Dashboard] Attempted to add live data point while historical data exists - BLOCKED');
-          return prev; // Return unchanged
+          return prev; // Return unchanged - chart frozen with historical data
         }
 
         const newPoint = {
