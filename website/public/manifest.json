@@ -1,6 +1,6 @@
 {
-  "name": "Environmental Monitor",
-  "short_name": "EnvMonitor",
+  "name": "The Forecaster 2 [Pocket Edition]",
+  "short_name": "Forecaster2",
   "description": "Real-time IoT environmental monitoring dashboard",
   "start_url": ".",
   "display": "standalone",

@@ -809,7 +809,7 @@ export const Dashboard = () => {
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-light text-foreground mb-2">
-            Environmental Monitor
+            The Forecaster 2 [Pocket Edition]
           </h1>
           <div className="space-y-1">
             <p className="text-lg font-medium text-foreground">
