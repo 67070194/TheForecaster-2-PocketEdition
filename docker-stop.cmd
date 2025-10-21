@@ -1,7 +1,11 @@
 @echo off
-REM Stop the stack (no volume removal)
+REM Stop Docker services (no volume removal)
 docker compose down
-if errorlevel 1 exit /b %errorlevel%
 
-echo Stopped containers.
+if errorlevel 1 (
+  echo [x] Docker compose down failed.
+  exit /b %errorlevel%
+)
+
+echo [✓] Docker services stopped.
 exit /b 0

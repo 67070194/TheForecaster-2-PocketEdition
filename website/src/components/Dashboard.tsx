@@ -268,30 +268,34 @@ export const Dashboard = () => {
       const dataPoints: any[] = [];
       let currentTime = startTime;
 
-      // Helper functions for data generation
+      // Helper functions for realistic data generation
       const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
-      const stepFrom = (v: number, step: number) => v + (Math.random() * 2 - 1) * step;
+      // Smoother step function with smaller random variations
+      const smoothStep = (v: number, maxStep: number) => {
+        const change = (Math.random() * 2 - 1) * maxStep;
+        return v + change;
+      };
 
-      // Starting values
+      // Starting values - realistic baseline
       let prevData = {
-        temperature: 25,
-        humidity: 70,
-        pressure: 1010.10,
-        pm1: 16,
-        pm25: 8,
-        pm10: 12
+        temperature: 26.5,
+        humidity: 65,
+        pressure: 1013.25,
+        pm1: 8,
+        pm25: 12,
+        pm10: 18
       };
 
       // Generate points until we reach current time
       while (currentTime <= now) {
-        // Generate next data point with smooth transitions
+        // Generate next data point with smooth, realistic transitions
         const nextData = {
-          temperature: Number(clamp(stepFrom(prevData.temperature, 0.5), 15, 35).toFixed(2)),
-          humidity: Number(clamp(stepFrom(prevData.humidity, 2.0), 30, 85).toFixed(2)),
-          pressure: Number(clamp(stepFrom(prevData.pressure, 0.5), 995, 1030).toFixed(2)),
-          pm1: Math.round(clamp(stepFrom(prevData.pm1, 3), 0, 120)),
-          pm25: Math.round(clamp(stepFrom(prevData.pm25, 5), 0, 150)),
-          pm10: Math.round(clamp(stepFrom(prevData.pm10, 5), 0, 180)),
+          temperature: Number(clamp(smoothStep(prevData.temperature, 0.3), 18, 32).toFixed(2)),
+          humidity: Number(clamp(smoothStep(prevData.humidity, 1.5), 40, 80).toFixed(2)),
+          pressure: Number(clamp(smoothStep(prevData.pressure, 0.3), 1000, 1025).toFixed(2)),
+          pm1: Math.round(clamp(smoothStep(prevData.pm1, 2), 5, 80)),
+          pm25: Math.round(clamp(smoothStep(prevData.pm25, 3), 8, 120)),
+          pm10: Math.round(clamp(smoothStep(prevData.pm10, 4), 12, 150)),
         };
 
         const aqi = calculateAQI(nextData.pm25);
@@ -591,9 +595,13 @@ export const Dashboard = () => {
 
     const generateData = (initial = false) => {
       const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
-      const stepFrom = (v: number, step: number) => v + (Math.random() * 2 - 1) * step; // uniform step
+      // Smoother step function with smaller random variations
+      const smoothStep = (v: number, maxStep: number) => {
+        const change = (Math.random() * 2 - 1) * maxStep;
+        return v + change;
+      };
 
-      const defaults = { temperature: 25, humidity: 70, pressure: 1010.10, pm1: 16, pm25: 8, pm10: 12 } as const;
+      const defaults = { temperature: 26.5, humidity: 65, pressure: 1013.25, pm1: 8, pm25: 12, pm10: 18 } as const;
       const prev = lastMqttDataRef.current?.data ?? sensorData;
       const base = (initial || !Number.isFinite(prev.temperature))
         ? defaults
@@ -606,14 +614,14 @@ export const Dashboard = () => {
             pm10: prev.pm10,
           };
 
-      // plausible bounds + small steps to avoid chart spikes
+      // Realistic bounds + small smooth steps to avoid chart spikes
       const next = {
-        temperature: Number(clamp(stepFrom(base.temperature, 0.5), 15, 35).toFixed(2)),
-        humidity: Number(clamp(stepFrom(base.humidity, 2.0), 30, 85).toFixed(2)),
-        pressure: Number(clamp(stepFrom(base.pressure, 0.5), 995, 1030).toFixed(2)),
-        pm1: Math.round(clamp(stepFrom(base.pm1, 3), 0, 120)),
-        pm25: Math.round(clamp(stepFrom(base.pm25, 5), 0, 150)),
-        pm10: Math.round(clamp(stepFrom(base.pm10, 5), 0, 180)),
+        temperature: Number(clamp(smoothStep(base.temperature, 0.3), 18, 32).toFixed(2)),
+        humidity: Number(clamp(smoothStep(base.humidity, 1.5), 40, 80).toFixed(2)),
+        pressure: Number(clamp(smoothStep(base.pressure, 0.3), 1000, 1025).toFixed(2)),
+        pm1: Math.round(clamp(smoothStep(base.pm1, 2), 5, 80)),
+        pm25: Math.round(clamp(smoothStep(base.pm25, 3), 8, 120)),
+        pm10: Math.round(clamp(smoothStep(base.pm10, 4), 12, 150)),
         aqi: 0,
       } as any;
       next.aqi = calculateAQI(next.pm25);
