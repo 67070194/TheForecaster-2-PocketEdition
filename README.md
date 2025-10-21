@@ -337,11 +337,70 @@ commands\tunnel-start.cmd
 
 # Stop Cloudflare tunnel
 commands\tunnel-stop.cmd
+
+# Quick tunnel (temporary URL, no account needed)
+commands\trycloudflare.cmd
 ```
 
 ---
 
+### Try Cloudflare Mode (Quick Testing)
+**For testing production without domain setup**
+
+```bash
+# Start with temporary Cloudflare tunnel
+commands\trycloudflare.cmd
+```
+
+**What it does:**
+- Starts backend + database (no nginx)
+- Launches Cloudflare quick tunnel (no account needed)
+- Generates temporary HTTPS URL (e.g., `https://random-name-1234.trycloudflare.com`)
+- Automatically opens GitHub Pages dashboard with tunnel URL parameter
+- Perfect for quick testing without domain setup
+
+**Important Notes:**
+⚠️ **Tunnel URL changes every restart!**
+- Each time you run this command, you get a new URL
+- Dashboard URL parameter must be updated each time
+- Not suitable for production (use prod-start.cmd instead)
+
+**How to use:**
+1. Run `commands\trycloudflare.cmd`
+2. Wait for tunnel URL to appear
+3. Dashboard opens automatically with URL parameter
+4. Test the connection (should show "Database: Online")
+
+**If URL changes:**
+- Visit: `https://67070194.github.io/TheForecaster-2-PocketEdition/dashboard?api=NEW_URL`
+- Browser saves URL in localStorage (persists across visits)
+- Or clear cache and re-run trycloudflare.cmd
+
+**When to use:**
+✅ Quick testing without permanent tunnel
+✅ No Cloudflare account required
+✅ No domain configuration needed
+✅ Instant setup for development
+
+**When NOT to use:**
+❌ Production deployments (URL changes)
+❌ Long-term testing (persistent URL needed)
+❌ Sharing with others (URL becomes invalid on restart)
+
+**For production with persistent URL:**
+Use `commands\prod-start.cmd` with named tunnel (requires Cloudflare account)
+
+---
+
 ## Deployment Options
+
+There are **three** ways to deploy The Forecaster 2:
+
+1. **Full Docker Stack (LAN/Local)** - Everything runs locally, no internet required
+2. **GitHub Pages + Named Tunnel** - Production deployment with persistent URL
+3. **GitHub Pages + Try Cloudflare** - Quick testing with temporary URL ⚡
+
+---
 
 ### Option 1: Full Docker Stack (LAN/Local)
 
@@ -708,6 +767,191 @@ echo Opening dashboard...
 timeout /t 5
 start https://yourusername.github.io/TheForecaster-2-PocketEdition/
 ```
+
+---
+
+### Option 3: GitHub Pages + Try Cloudflare (Quick Testing)
+
+This deployment uses **Cloudflare Quick Tunnel** for instant testing without account or domain setup. Ideal for:
+- Quick production testing
+- Development without permanent tunnel
+- Testing GitHub Pages integration
+- Learning how the system works
+
+#### ⚠️ Important Limitation
+
+**The tunnel URL changes every time you restart!**
+- Each restart generates a new URL like `https://random-abc-123.trycloudflare.com`
+- You must update the dashboard URL parameter each time
+- **Not suitable for production** - use Option 2 (Named Tunnel) instead
+
+#### Quick Start (Automated)
+
+```bash
+# Windows - One command does everything
+commands\trycloudflare.cmd
+```
+
+**What this script does:**
+1. Checks if `cloudflared` is installed
+2. Starts Docker services (database + backend)
+3. Waits for backend health check
+4. Launches Cloudflare quick tunnel
+5. Captures the generated tunnel URL
+6. Opens GitHub Pages dashboard with URL parameter
+7. Displays tunnel information and logs
+
+#### Quick Start (Manual)
+
+If you prefer step-by-step control:
+
+**Step 1: Install cloudflared**
+
+```bash
+# Windows (requires administrator)
+winget install Cloudflare.cloudflared
+
+# Or download manually from:
+# https://github.com/cloudflare/cloudflared/releases
+# Extract and add to PATH
+```
+
+**Step 2: Start Backend Services**
+
+```bash
+docker compose up -d db server backup
+```
+
+**Step 3: Start Quick Tunnel**
+
+```bash
+cloudflared tunnel --url http://localhost:3001
+```
+
+This will output something like:
+```
++--------------------------------------------------------------------------------------------+
+|  Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):  |
+|  https://random-abc-123.trycloudflare.com                                                  |
++--------------------------------------------------------------------------------------------+
+```
+
+**Copy this URL** (e.g., `https://random-abc-123.trycloudflare.com`)
+
+**Step 4: Open Dashboard with URL Parameter**
+
+Visit your GitHub Pages dashboard with the tunnel URL as parameter:
+
+```
+https://67070194.github.io/TheForecaster-2-PocketEdition/dashboard?api=https://random-abc-123.trycloudflare.com&fw=https://random-abc-123.trycloudflare.com
+```
+
+Replace `random-abc-123` with your actual tunnel URL.
+
+**The dashboard will:**
+- Save the URL in browser localStorage
+- Use it for all API calls
+- Persist across page reloads
+
+**Step 5: Verify Connection**
+
+Check that dashboard shows:
+- **"Database: Online"** ✅
+- **"ESP32: Connecting..."** or **"Connected"** ✅
+
+Test the tunnel manually:
+```bash
+# Replace with your tunnel URL
+curl https://random-abc-123.trycloudflare.com/health
+# Should return: {"db":"online","server":"running"}
+```
+
+#### When You Restart
+
+**Problem:** Tunnel URL changes every restart
+
+**Solution:** Update the URL parameter
+
+**Option A: Automated (Recommended)**
+```bash
+# Re-run the script - it handles everything
+commands\trycloudflare.cmd
+```
+
+**Option B: Manual Update**
+1. Stop old tunnel (Ctrl+C)
+2. Restart tunnel: `cloudflared tunnel --url http://localhost:3001`
+3. Copy new URL
+4. Visit dashboard with new URL:
+   ```
+   https://67070194.github.io/TheForecaster-2-PocketEdition/dashboard?api=NEW_URL&fw=NEW_URL
+   ```
+
+**Option C: Clear Saved URL**
+Visit: `https://67070194.github.io/TheForecaster-2-PocketEdition/dashboard?api=clear`
+
+Then re-open with new tunnel URL.
+
+#### Troubleshooting
+
+**Problem: Dashboard shows "Database: Offline"**
+
+Solutions:
+1. Check tunnel is running (terminal should show tunnel URL)
+2. Verify backend health: Visit `https://YOUR-TUNNEL-URL/health`
+3. Check URL parameter is correct (check browser address bar)
+4. Clear browser cache and localStorage
+5. Re-run `commands\trycloudflare.cmd`
+
+**Problem: Tunnel fails to start**
+
+Solutions:
+1. Check `cloudflared` is installed: `cloudflared --version`
+2. Verify backend is running: `curl http://localhost:3001/health`
+3. Check Docker services: `docker compose ps`
+4. Review tunnel logs (displayed by trycloudflare.cmd)
+
+**Problem: CORS errors in browser console**
+
+Solution: Server already has CORS enabled, but verify:
+- Tunnel URL is HTTPS (not HTTP)
+- URL parameter was applied (check localStorage in DevTools)
+- Backend is responding: `curl https://YOUR-TUNNEL-URL/health`
+
+#### Advantages
+
+✅ No Cloudflare account required
+✅ No domain setup needed
+✅ Instant testing (< 1 minute setup)
+✅ Free forever (Cloudflare quick tunnel)
+✅ HTTPS automatically enabled
+✅ Perfect for learning and development
+✅ Automated script handles everything
+
+#### Disadvantages
+
+❌ URL changes every restart (not persistent)
+❌ Must manually update dashboard each time
+❌ Cannot share URL long-term (becomes invalid)
+❌ Not suitable for production
+❌ Tunnel has bandwidth limits (100GB/month)
+❌ No custom domain support
+
+#### When to Upgrade to Named Tunnel (Option 2)
+
+Use Try Cloudflare (Option 3) for:
+- Quick testing and development
+- Learning how the system works
+- Temporary demonstrations
+
+Upgrade to Named Tunnel (Option 2) when:
+- You need a persistent URL
+- Deploying for production use
+- Sharing with team/users long-term
+- Setting up custom domain
+
+**To upgrade:**
+Follow the **"Option 2: GitHub Pages + Named Tunnel"** guide above, starting from "Option B: Named Tunnel (Persistent URL)".
 
 ---
 
