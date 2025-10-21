@@ -1,7 +1,7 @@
 @echo off
-REM Start EVERYTHING: Docker + Frontend Dev + Cloudflare Tunnel
-REM - Local dev server (localhost:5173) for real-time debugging
-REM - GitHub Pages (github.io) connects via tunnel for production testing
+REM Start EVERYTHING: Docker + Cloudflare Tunnel
+REM - Local debugging at localhost:8080 (Docker nginx production build)
+REM - GitHub Pages (github.io) connects via tunnel for remote access
 setlocal
 
 set PORT=3001
@@ -12,16 +12,15 @@ echo   FULLSTACK ALL - Complete Environment
 echo ========================================
 echo.
 echo Starting:
-echo  [1] Docker (database + backend)
-echo  [2] Frontend dev server (localhost:5173)
-echo  [3] Cloudflare tunnel (for GitHub Pages)
+echo  [1] Docker (database + backend + nginx frontend)
+echo  [2] Cloudflare tunnel (for GitHub Pages access)
 echo.
 
 REM ==========================================
 REM Step 1: Start Docker services
 REM ==========================================
-echo [1/3] Starting Docker services...
-docker compose up -d
+echo [1/2] Starting Docker services...
+docker compose up -d --build
 if errorlevel 1 (
   echo [x] Docker compose failed.
   exit /b 1
@@ -41,27 +40,17 @@ for /l %%i in (1,1,15) do (
   timeout /t 2 >nul
 )
 echo [!] Backend not responding yet, but continuing...
-goto :START_FRONTEND
+goto :START_TUNNEL
 
 :BACKEND_READY
 echo [✓] Backend server is ready at http://localhost:%PORT%
 echo.
 
 REM ==========================================
-REM Step 3: Start frontend dev server
+REM Step 3: Start Cloudflare tunnel
 REM ==========================================
-:START_FRONTEND
-echo [2/3] Starting frontend dev server...
-cd website
-start "Frontend Dev Server" cmd /k "npm run dev"
-cd ..
-echo [✓] Frontend dev server starting at http://localhost:5173
-echo.
-
-REM ==========================================
-REM Step 4: Start Cloudflare tunnel
-REM ==========================================
-echo [3/3] Starting Cloudflare tunnel...
+:START_TUNNEL
+echo [2/2] Starting Cloudflare tunnel...
 echo [i] This allows GitHub Pages to connect to your local backend
 timeout /t 2 >nul
 start "Cloudflare Tunnel" cmd /k "cloudflared tunnel --url http://localhost:%PORT%"
@@ -77,28 +66,27 @@ echo ========================================
 echo   ALL SERVICES STARTED!
 echo ========================================
 echo.
-echo Local Development:
-echo  - Frontend Dev:  http://localhost:5173 (Hot reload enabled)
+echo Local Debugging:
+echo  - Website:       http://localhost:8080 (Docker nginx)
 echo  - Backend API:   http://localhost:%PORT%
-echo  - Production:    http://localhost:8080 (nginx)
 echo  - Database:      PostgreSQL on localhost:5432
 echo.
-echo GitHub Pages Production:
+echo Remote Access (GitHub Pages):
 echo  - Website:       %DASH%
 echo  - Connects to:   Your local backend via Cloudflare tunnel
 echo.
 echo Open Windows:
-echo  [1] Frontend Dev Server (localhost:5173)
-echo  [2] Cloudflare Tunnel (copy the *.trycloudflare.com URL if needed)
+echo  [1] Cloudflare Tunnel (shows *.trycloudflare.com URL)
 echo.
 echo Tips:
-echo  - Edit code and see changes instantly at localhost:5173
-echo  - Test production version at github.io
-echo  - Both connect to same local backend/database
+echo  - Debug locally at localhost:8080
+echo  - Test remotely at github.io
+echo  - Both use same local backend/database
+echo  - Rebuild frontend: docker compose up -d --build
 echo.
-echo Press any key to open local dev server...
+echo Press any key to open local website...
 pause >nul
-start http://localhost:5173
+start http://localhost:8080
 
 endlocal
 exit /b 0

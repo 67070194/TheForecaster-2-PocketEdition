@@ -8,7 +8,7 @@ echo ========================================
 echo.
 
 REM Stop Cloudflare tunnel
-echo [1/3] Stopping Cloudflare tunnel...
+echo [1/2] Stopping Cloudflare tunnel...
 taskkill /FI "WINDOWTITLE eq Cloudflare Tunnel*" /T /F >nul 2>&1
 taskkill /F /IM cloudflared.exe >nul 2>&1
 if not errorlevel 1 (
@@ -17,19 +17,9 @@ if not errorlevel 1 (
   echo [!] No tunnel found or already stopped
 )
 
-REM Stop frontend dev server
-echo.
-echo [2/3] Stopping frontend dev server...
-taskkill /FI "WINDOWTITLE eq Frontend Dev Server*" /T /F >nul 2>&1
-if not errorlevel 1 (
-  echo [✓] Frontend dev server stopped
-) else (
-  echo [!] No dev server found or already stopped
-)
-
 REM Stop Docker services
 echo.
-echo [3/3] Stopping Docker services...
+echo [2/2] Stopping Docker services...
 docker compose down
 if errorlevel 1 (
   echo [!] Docker compose down failed or no containers running
