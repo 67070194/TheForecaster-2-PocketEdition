@@ -41,7 +41,7 @@ const sensorConfigs = [
 // - เลือกชนิด sensor ที่ต้องการดู
 // - ใช้ computeNiceTicks เพื่อจัดระยะแกน Y ให้เหมาะสมกับข้อมูลปัจจุบัน
 export const SensorChart = ({ data }: SensorChartProps) => {
-  const [timeFrame, setTimeFrame] = useState(30); // Default 30 points
+  const [timeFrame, setTimeFrame] = useState(480); // Default 8 hours (480 minutes)
   const [selectedSensor, setSelectedSensor] = useState<'temperature'|'humidity'|'pressure'|'pm1'|'pm25'|'pm10'|'aqi'>('temperature');
 
   // Persist selected time frame and sensor across refresh
