@@ -113,17 +113,17 @@ const Documentation = () => {
 
               <Separator />
 
-              <div className="bg-muted/30 p-4 rounded-lg">
+              <div className="bg-muted/30 p-4 rounded-lg overflow-hidden">
                 <h4 className="font-semibold mb-2 flex items-center gap-2">
                   <Wifi className="h-4 w-4" />
                   Data Flow
                 </h4>
-                <div className="text-sm text-muted-foreground space-y-1 font-mono">
-                  <div>ESP32 Sensors → MQTT Broker (HiveMQ)</div>
+                <div className="text-sm text-muted-foreground space-y-1 font-mono break-words overflow-x-auto">
+                  <div className="whitespace-nowrap overflow-x-auto">ESP32 Sensors → MQTT Broker (HiveMQ)</div>
                   <div className="ml-8">↓</div>
-                  <div>Backend Server → TimescaleDB (8h retention)</div>
+                  <div className="whitespace-nowrap overflow-x-auto">Backend Server → TimescaleDB (8h retention)</div>
                   <div className="ml-8">↓</div>
-                  <div>REST API → React Dashboard</div>
+                  <div className="whitespace-nowrap overflow-x-auto">REST API → React Dashboard</div>
                 </div>
               </div>
             </CardContent>
@@ -290,52 +290,52 @@ const Documentation = () => {
               </p>
 
               <div className="space-y-3">
-                <div className="bg-muted/50 p-3 rounded-lg">
+                <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
                   <div className="flex items-center gap-2 mb-1">
-                    <Code className="h-4 w-4 text-green-500" />
-                    <span className="font-semibold">server/index.js</span>
+                    <Code className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="font-semibold break-all">server/index.js</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground break-words">
                     Backend entry point: MQTT subscription, REST API, AQI calculation, firmware distribution
                   </p>
                 </div>
 
-                <div className="bg-muted/50 p-3 rounded-lg">
+                <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
                   <div className="flex items-center gap-2 mb-1">
-                    <Code className="h-4 w-4 text-blue-500" />
-                    <span className="font-semibold">Dashboard.tsx</span>
+                    <Code className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                    <span className="font-semibold break-all">Dashboard.tsx</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground break-words">
                     Main UI component: MQTT flow, state management, dual-mode operation, OTA uploads
                   </p>
                 </div>
 
-                <div className="bg-muted/50 p-3 rounded-lg">
+                <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
                   <div className="flex items-center gap-2 mb-1">
-                    <Code className="h-4 w-4 text-purple-500" />
-                    <span className="font-semibold">SensorChart.tsx</span>
+                    <Code className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                    <span className="font-semibold break-all">SensorChart.tsx</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground break-words">
                     Chart component: Filtering modes, adaptive Y-axis algorithm, localStorage persistence
                   </p>
                 </div>
 
-                <div className="bg-muted/50 p-3 rounded-lg">
+                <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
                   <div className="flex items-center gap-2 mb-1">
-                    <Settings className="h-4 w-4 text-orange-500" />
-                    <span className="font-semibold">docker-compose.yml</span>
+                    <Settings className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                    <span className="font-semibold break-all">docker-compose.yml</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground break-words">
                     Docker orchestration: Service configuration, health checks, environment variables
                   </p>
                 </div>
 
-                <div className="bg-muted/50 p-3 rounded-lg">
+                <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
                   <div className="flex items-center gap-2 mb-1">
-                    <Terminal className="h-4 w-4 text-gray-500" />
-                    <span className="font-semibold">commands/*.cmd</span>
+                    <Terminal className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                    <span className="font-semibold break-all">commands/*.cmd</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground break-words">
                     Launch scripts: dev-start.cmd (development) and prod-start.cmd (production + tunnel)
                   </p>
                 </div>
@@ -369,10 +369,10 @@ const Documentation = () => {
               <div className="space-y-3">
                 <div>
                   <h3 className="font-semibold mb-2">Development Mode (Port 8081)</h3>
-                  <div className="bg-muted/50 p-4 rounded-lg font-mono text-sm space-y-1">
-                    <div># Windows - Start development environment</div>
-                    <div>commands\dev-start.cmd</div>
-                    <div className="pt-2 text-muted-foreground"># Opens Vite dev server with hot reload</div>
+                  <div className="bg-muted/50 p-4 rounded-lg font-mono text-sm space-y-1 overflow-x-auto">
+                    <div className="whitespace-nowrap"># Windows - Start development environment</div>
+                    <div className="whitespace-nowrap">commands\dev-start.cmd</div>
+                    <div className="pt-2 text-muted-foreground whitespace-nowrap"># Opens Vite dev server with hot reload</div>
                   </div>
                 </div>
 
@@ -380,10 +380,10 @@ const Documentation = () => {
 
                 <div>
                   <h3 className="font-semibold mb-2">Production Mode (Port 8080)</h3>
-                  <div className="bg-muted/50 p-4 rounded-lg font-mono text-sm space-y-1">
-                    <div># Windows - Start production stack + Cloudflare tunnel</div>
-                    <div>commands\prod-start.cmd</div>
-                    <div className="pt-2 text-muted-foreground"># Nginx production build + remote access</div>
+                  <div className="bg-muted/50 p-4 rounded-lg font-mono text-sm space-y-1 overflow-x-auto">
+                    <div className="whitespace-nowrap"># Windows - Start production stack + Cloudflare tunnel</div>
+                    <div className="whitespace-nowrap">commands\prod-start.cmd</div>
+                    <div className="pt-2 text-muted-foreground whitespace-nowrap"># Nginx production build + remote access</div>
                   </div>
                 </div>
 
@@ -391,13 +391,13 @@ const Documentation = () => {
 
                 <div>
                   <h3 className="font-semibold mb-2">Manual Docker Setup</h3>
-                  <div className="bg-muted/50 p-4 rounded-lg font-mono text-sm space-y-1">
-                    <div># Clone repository</div>
-                    <div>git clone https://github.com/67070194/TheForecaster-2-PocketEdition.git</div>
-                    <div className="pt-2"># Create environment file</div>
-                    <div>cp .env.example .env</div>
-                    <div className="pt-2"># Start Docker services</div>
-                    <div>docker compose up -d</div>
+                  <div className="bg-muted/50 p-4 rounded-lg font-mono text-sm space-y-1 overflow-x-auto">
+                    <div className="whitespace-nowrap"># Clone repository</div>
+                    <div className="whitespace-nowrap break-all">git clone https://github.com/67070194/TheForecaster-2-PocketEdition.git</div>
+                    <div className="pt-2 whitespace-nowrap"># Create environment file</div>
+                    <div className="whitespace-nowrap">cp .env.example .env</div>
+                    <div className="pt-2 whitespace-nowrap"># Start Docker services</div>
+                    <div className="whitespace-nowrap">docker compose up -d</div>
                   </div>
                 </div>
               </div>
@@ -496,56 +496,56 @@ const Documentation = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
-                <div className="bg-muted/50 p-3 rounded-lg">
-                  <div className="font-mono text-sm font-semibold mb-1 text-green-600 dark:text-green-400">
+                <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
+                  <div className="font-mono text-sm font-semibold mb-1 text-green-600 dark:text-green-400 break-all">
                     TFCT_2_PE/status
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground break-words">
                     Device connection status: "online" or "offline"
                   </p>
                 </div>
 
-                <div className="bg-muted/50 p-3 rounded-lg">
-                  <div className="font-mono text-sm font-semibold mb-1 text-blue-600 dark:text-blue-400">
+                <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
+                  <div className="font-mono text-sm font-semibold mb-1 text-blue-600 dark:text-blue-400 break-all">
                     TFCT_2_PE/data
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground break-words">
                     JSON sensor readings: {"{"} ts, id, t, h, p, pm1, pm25, pm10 {"}"}
                   </p>
                 </div>
 
-                <div className="bg-muted/50 p-3 rounded-lg">
-                  <div className="font-mono text-sm font-semibold mb-1 text-purple-600 dark:text-purple-400">
+                <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
+                  <div className="font-mono text-sm font-semibold mb-1 text-purple-600 dark:text-purple-400 break-all">
                     TFCT_2_PE/cmd/time
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground break-words">
                     RTC sync command: Unix epoch timestamp
                   </p>
                 </div>
 
-                <div className="bg-muted/50 p-3 rounded-lg">
-                  <div className="font-mono text-sm font-semibold mb-1 text-orange-600 dark:text-orange-400">
+                <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
+                  <div className="font-mono text-sm font-semibold mb-1 text-orange-600 dark:text-orange-400 break-all">
                     TFCT_2_PE/cmd/interval
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground break-words">
                     Update interval command: milliseconds (500-600000)
                   </p>
                 </div>
 
-                <div className="bg-muted/50 p-3 rounded-lg">
-                  <div className="font-mono text-sm font-semibold mb-1 text-red-600 dark:text-red-400">
+                <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
+                  <div className="font-mono text-sm font-semibold mb-1 text-red-600 dark:text-red-400 break-all">
                     TFCT_2_PE/cmd/ota_now
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground break-words">
                     Firmware OTA command: HTTP/HTTPS URL to .bin file
                   </p>
                 </div>
 
-                <div className="bg-muted/50 p-3 rounded-lg">
-                  <div className="font-mono text-sm font-semibold mb-1 text-gray-600 dark:text-gray-400">
+                <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
+                  <div className="font-mono text-sm font-semibold mb-1 text-gray-600 dark:text-gray-400 break-all">
                     TFCT_2_PE/debug
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground break-words">
                     Debug events: OTA status (ota_ok, ota_fail, ota_begin_fail)
                   </p>
                 </div>
@@ -562,52 +562,52 @@ const Documentation = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="bg-muted/50 p-3 rounded-lg">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <Badge variant="outline" className="bg-blue-100 dark:bg-blue-950 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300">GET</Badge>
-                  <code className="text-sm">/health</code>
+                  <code className="text-sm break-all">/health</code>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground break-words">
                   Health check endpoint - Returns: {"{"} ok, db, timestamp {"}"}
                 </p>
               </div>
 
-              <div className="bg-muted/50 p-3 rounded-lg">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <Badge variant="outline" className="bg-blue-100 dark:bg-blue-950 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300">GET</Badge>
-                  <code className="text-sm">/api/latest</code>
+                  <code className="text-sm break-all">/api/latest</code>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground break-words">
                   Get most recent sensor reading
                 </p>
               </div>
 
-              <div className="bg-muted/50 p-3 rounded-lg">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <Badge variant="outline" className="bg-blue-100 dark:bg-blue-950 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300">GET</Badge>
-                  <code className="text-sm">/api/readings?minutes=480</code>
+                  <code className="text-sm break-all">/api/readings?minutes=480</code>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground break-words">
                   Get historical readings (default: 8 hours)
                 </p>
               </div>
 
-              <div className="bg-muted/50 p-3 rounded-lg">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <Badge variant="outline" className="bg-green-100 dark:bg-green-950 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300">POST</Badge>
-                  <code className="text-sm">/fw/upload</code>
+                  <code className="text-sm break-all">/fw/upload</code>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground break-words">
                   Upload firmware binary - Returns download URL
                 </p>
               </div>
 
-              <div className="bg-muted/50 p-3 rounded-lg">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="bg-muted/50 p-3 rounded-lg overflow-hidden">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <Badge variant="outline" className="bg-blue-100 dark:bg-blue-950 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300">GET</Badge>
-                  <code className="text-sm">/fw/f/{'<filename>'}</code>
+                  <code className="text-sm break-all">/fw/f/{'<filename>'}</code>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground break-words">
                   Download firmware binary for ESP32 OTA
                 </p>
               </div>

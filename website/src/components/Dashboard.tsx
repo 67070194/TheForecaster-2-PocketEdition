@@ -1234,16 +1234,8 @@ export const Dashboard = () => {
               </div>
             )}
           </div>
+          {/* ESP32 and Database status badges */}
           <div className="flex items-center gap-3 flex-wrap justify-center">
-            <Button
-              variant={isTesterMode ? "default" : "outline"}
-              size="sm"
-              onClick={() => setIsTesterMode(!isTesterMode)}
-              className="gap-2"
-            >
-              <FlaskConical size={16} />
-              {isTesterMode ? "Tester Mode" : "Normal Mode"}
-            </Button>
             {/* ESP32 (MQTT) status */}
             <Badge
               variant="default"
@@ -1294,6 +1286,18 @@ export const Dashboard = () => {
                 ? 'Database: Offline'
                 : 'Database: Checking...'}
             </Badge>
+          </div>
+          {/* Mode toggle button */}
+          <div className="flex items-center gap-3 flex-wrap justify-center">
+            <Button
+              variant={isTesterMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setIsTesterMode(!isTesterMode)}
+              className="gap-2"
+            >
+              <FlaskConical size={16} />
+              {isTesterMode ? "Tester Mode" : "Normal Mode"}
+            </Button>
           </div>
       </div>
       {/* OTA Panel moved inline next to Update Settings */}
