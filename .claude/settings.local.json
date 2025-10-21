@@ -28,7 +28,9 @@
       "WebFetch(domain:67070194.github.io)",
       "Bash(curl:*)",
       "Bash(docker exec:*)",
-      "WebFetch(domain:api.hcn.in.net)"
+      "WebFetch(domain:api.hcn.in.net)",
+      "Bash(powershell -Command \"Start-Process ''C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe''\")",
+      "Bash(./fullstack-start.cmd)"
     ],
     "deny": [],
     "ask": []

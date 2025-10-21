@@ -131,23 +131,7 @@ export const Dashboard = () => {
 
   // Reset chart data when switching (real/test)
   useEffect(() => {
-    // Auto-delete simulated data when leaving Tester Mode
-    if (!isTesterMode && hasSimulatedData) {
-      (async () => {
-        try {
-          const API_BASE = getApiBase();
-          await fetch(`${API_BASE}/api/readings/clear`, { method: 'DELETE' });
-          toast({
-            title: "Tester Mode Data Cleared",
-            description: "Simulated data has been automatically removed"
-          });
-        } catch (e) {
-          console.error('Failed to auto-clear simulated data:', e);
-        }
-      })();
-    }
-
-    // Clear all chart-related state and refs
+    // Clear all chart-related state and refs (in-memory only, no backend calls)
     setChartData([]);
     lastDbTsRef.current = 0;
     historyLoadedRef.current = false;
@@ -158,17 +142,7 @@ export const Dashboard = () => {
     // Increment chart key to force React to remount chart components
     // This ensures complete cleanup and prevents data mixing between modes
     setChartKey(prev => prev + 1);
-  }, [isTesterMode, hasSimulatedData]);
-
-  // Cleanup simulated data when component unmounts (page navigation)
-  useEffect(() => {
-    return () => {
-      if (hasSimulatedData) {
-        const API_BASE = getApiBase();
-        fetch(`${API_BASE}/api/readings/clear`, { method: 'DELETE' }).catch(() => {});
-      }
-    };
-  }, [hasSimulatedData]);
+  }, [isTesterMode]);
 
   // Database/Backend health status polling
   useEffect(() => {
@@ -231,11 +205,11 @@ export const Dashboard = () => {
     return Math.min(500, Math.round(((300 - 201) / (250.4 - 150.5)) * (pm25 - 150.5) + 201));
   };
 
-  // Database simulation: populate 8 hours of test data with randomized intervals
+  // In-Memory simulation: populate 8 hours of test data (Tester Mode only - no backend needed)
   const simulateDatabaseData = async () => {
     if (!isTesterMode) {
       toast({
-        title: "Database Simulation",
+        title: "Historical Data Simulation",
         description: "Only available in Tester Mode",
         variant: "destructive"
       });
@@ -245,7 +219,7 @@ export const Dashboard = () => {
     if (isDbSimulating) {
       toast({
         title: "Already Simulating",
-        description: "Database simulation is already running",
+        description: "Historical data generation is already running",
         variant: "destructive"
       });
       return;
@@ -254,133 +228,94 @@ export const Dashboard = () => {
     setIsDbSimulating(true);
 
     toast({
-      title: "Database Simulation Started",
-      description: "Generating 8 hours of data with random intervals..."
+      title: "Generating Historical Data",
+      description: "Creating 8 hours of realistic sensor data..."
     });
 
-    try {
-      const API_BASE = getApiBase();
-      const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
-      const now = Date.now();
-      const startTime = now - EIGHT_HOURS_MS;
+    // Use setTimeout to allow UI to update before heavy computation
+    setTimeout(() => {
+      try {
+        const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+        const now = Date.now();
+        const startTime = now - EIGHT_HOURS_MS;
 
-      // Generate data points with randomized intervals
-      const dataPoints: any[] = [];
-      let currentTime = startTime;
+        // Generate data points with randomized intervals (in-memory only)
+        const dataPoints: ChartData[] = [];
+        let currentTime = startTime;
 
-      // Helper functions for realistic data generation
-      const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
-      // Smoother step function with smaller random variations
-      const smoothStep = (v: number, maxStep: number) => {
-        const change = (Math.random() * 2 - 1) * maxStep;
-        return v + change;
-      };
-
-      // Starting values - realistic baseline
-      let prevData = {
-        temperature: 26.5,
-        humidity: 65,
-        pressure: 1013.25,
-        pm1: 8,
-        pm25: 12,
-        pm10: 18
-      };
-
-      // Generate points until we reach current time
-      while (currentTime <= now) {
-        // Generate next data point with smooth, realistic transitions
-        const nextData = {
-          temperature: Number(clamp(smoothStep(prevData.temperature, 0.3), 18, 32).toFixed(2)),
-          humidity: Number(clamp(smoothStep(prevData.humidity, 1.5), 40, 80).toFixed(2)),
-          pressure: Number(clamp(smoothStep(prevData.pressure, 0.3), 1000, 1025).toFixed(2)),
-          pm1: Math.round(clamp(smoothStep(prevData.pm1, 2), 5, 80)),
-          pm25: Math.round(clamp(smoothStep(prevData.pm25, 3), 8, 120)),
-          pm10: Math.round(clamp(smoothStep(prevData.pm10, 4), 12, 150)),
+        // Helper functions for realistic data generation
+        const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+        // Smoother step function with smaller random variations
+        const smoothStep = (v: number, maxStep: number) => {
+          const change = (Math.random() * 2 - 1) * maxStep;
+          return v + change;
         };
 
-        const aqi = calculateAQI(nextData.pm25);
+        // Starting values - realistic baseline
+        let prevData = {
+          temperature: 26.5,
+          humidity: 65,
+          pressure: 1013.25,
+          pm1: 8,
+          pm25: 12,
+          pm10: 18
+        };
 
-        dataPoints.push({
-          ts: new Date(currentTime).toISOString(),
-          t: nextData.temperature,
-          h: nextData.humidity,
-          p: nextData.pressure,
-          pm1: nextData.pm1,
-          pm25: nextData.pm25,
-          pm10: nextData.pm10,
-          aqi: aqi
-        });
+        // Generate points until we reach current time
+        while (currentTime <= now) {
+          // Generate next data point with smooth, realistic transitions
+          const nextData = {
+            temperature: Number(clamp(smoothStep(prevData.temperature, 0.3), 18, 32).toFixed(2)),
+            humidity: Number(clamp(smoothStep(prevData.humidity, 1.5), 40, 80).toFixed(2)),
+            pressure: Number(clamp(smoothStep(prevData.pressure, 0.3), 1000, 1025).toFixed(2)),
+            pm1: Math.round(clamp(smoothStep(prevData.pm1, 2), 5, 80)),
+            pm25: Math.round(clamp(smoothStep(prevData.pm25, 3), 8, 120)),
+            pm10: Math.round(clamp(smoothStep(prevData.pm10, 4), 12, 150)),
+          };
 
-        prevData = nextData;
+          const aqi = calculateAQI(nextData.pm25);
 
-        // Randomize interval: base updateInterval ± 50%
-        const randomInterval = updateInterval * (0.5 + Math.random());
-        currentTime += randomInterval;
-      }
-
-      // Send data to backend API in batches
-      const BATCH_SIZE = 100;
-      for (let i = 0; i < dataPoints.length; i += BATCH_SIZE) {
-        const batch = dataPoints.slice(i, i + BATCH_SIZE);
-
-        const response = await fetch(`${API_BASE}/api/readings/bulk`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ readings: batch })
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to insert batch ${i / BATCH_SIZE + 1}`);
-        }
-
-        // Show progress
-        const progress = Math.round(((i + batch.length) / dataPoints.length) * 100);
-        if (progress % 20 === 0 || i + BATCH_SIZE >= dataPoints.length) {
-          toast({
-            title: "Simulation Progress",
-            description: `${progress}% complete (${i + batch.length}/${dataPoints.length} points)`
+          dataPoints.push({
+            timestamp: new Date(currentTime).toISOString(),
+            temperature: nextData.temperature,
+            humidity: nextData.humidity,
+            pressure: nextData.pressure,
+            pm1: nextData.pm1,
+            pm25: nextData.pm25,
+            pm10: nextData.pm10,
+            aqi: aqi
           });
+
+          prevData = nextData;
+
+          // Randomize interval: base updateInterval ± 50%
+          const randomInterval = updateInterval * (0.5 + Math.random());
+          currentTime += randomInterval;
         }
+
+        // Load data directly into chart (no backend/database involved)
+        setChartData(dataPoints);
+        setHasSimulatedData(true);
+
+        toast({
+          title: "Historical Data Generated",
+          description: `Created ${dataPoints.length} data points over 8 hours (in-memory only)`
+        });
+
+      } catch (error: any) {
+        toast({
+          title: "Simulation Failed",
+          description: error.message || "Failed to generate historical data",
+          variant: "destructive"
+        });
+      } finally {
+        setIsDbSimulating(false);
       }
-
-      toast({
-        title: "Simulation Complete",
-        description: `Successfully generated ${dataPoints.length} data points over 8 hours`
-      });
-
-      // Reload the chart with new data
-      const res = await fetch(`${API_BASE}/api/readings?minutes=480`);
-      if (res.ok) {
-        const rows = await res.json();
-        if (Array.isArray(rows)) {
-          const mapped = rows.map((r: any) => ({
-            timestamp: new Date(r.ts).toISOString(),
-            temperature: Number(r.t ?? NaN),
-            humidity: Number(r.h ?? NaN),
-            pressure: Number(r.p ?? NaN),
-            pm1: Number(r.pm1 ?? NaN),
-            pm25: Number(r.pm25 ?? NaN),
-            pm10: Number(r.pm10 ?? NaN),
-            aqi: Number(r.aqi ?? NaN),
-          })) as ChartData[];
-          setChartData(mapped);
-          setHasSimulatedData(true); // Mark as simulated
-        }
-      }
-
-    } catch (error: any) {
-      toast({
-        title: "Simulation Failed",
-        description: error.message || "Failed to generate database data",
-        variant: "destructive"
-      });
-    } finally {
-      setIsDbSimulating(false);
-    }
+    }, 100);
   };
 
-  // Remove simulated database data
-  const removeSimulatedData = async () => {
+  // Remove simulated in-memory data (Tester Mode only - no backend needed)
+  const removeSimulatedData = () => {
     if (!isTesterMode) {
       toast({
         title: "Remove Data",
@@ -393,46 +328,22 @@ export const Dashboard = () => {
     if (isDbSimulating) {
       toast({
         title: "Cannot Remove",
-        description: "Wait for simulation to complete",
+        description: "Wait for data generation to complete",
         variant: "destructive"
       });
       return;
     }
 
-    try {
-      const API_BASE = getApiBase();
+    const pointCount = chartData.length;
 
-      toast({
-        title: "Removing Data",
-        description: "Clearing simulated database data..."
-      });
+    // Clear chart data from memory
+    setChartData([]);
+    setHasSimulatedData(false);
 
-      const response = await fetch(`${API_BASE}/api/readings/clear`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to clear data');
-      }
-
-      const result = await response.json();
-
-      toast({
-        title: "Data Removed",
-        description: `Deleted ${result.deleted || 0} data points`
-      });
-
-      // Clear chart
-      setChartData([]);
-      setHasSimulatedData(false);
-
-    } catch (error: any) {
-      toast({
-        title: "Remove Failed",
-        description: error.message || "Failed to remove database data",
-        variant: "destructive"
-      });
-    }
+    toast({
+      title: "Historical Data Cleared",
+      description: `Removed ${pointCount} data points from memory`
+    });
   };
 
   // Command: set RTC on device (disabled in Tester Mode)
@@ -898,22 +809,22 @@ export const Dashboard = () => {
                 }
               }}
             />
-            {/* Database Simulation (only in Tester Mode) */}
+            {/* Historical Data Generation (only in Tester Mode - in-memory, no backend needed) */}
             {isTesterMode && (
               <div className="flex items-center gap-3 bg-card/50 backdrop-blur-sm rounded-lg p-4 border border-border/50">
                 <DbIcon size={16} className="text-muted-foreground" />
                 <div>
-                  <div className="text-sm font-medium">Database Simulation</div>
-                  <div className="text-xs text-muted-foreground">Generate or remove 8h test data</div>
+                  <div className="text-sm font-medium">Historical Data</div>
+                  <div className="text-xs text-muted-foreground">Generate or clear 8h test data (in-memory)</div>
                 </div>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={hasSimulatedData ? removeSimulatedData : simulateDatabaseData}
-                  disabled={isDbSimulating || dbStatus !== 'online'}
+                  disabled={isDbSimulating}
                   className="gap-2"
                 >
-                  {isDbSimulating ? 'Processing...' : hasSimulatedData ? 'Remove' : 'Simulate'}
+                  {isDbSimulating ? 'Generating...' : hasSimulatedData ? 'Clear' : 'Generate'}
                 </Button>
               </div>
             )}
@@ -1001,8 +912,8 @@ export const Dashboard = () => {
               <DbIcon size={16} />
               {isTesterMode
                 ? hasSimulatedData
-                  ? 'Database: Simulated'
-                  : 'Database: Empty'
+                  ? 'History: Loaded'
+                  : 'History: Empty'
                 : dbStatus === 'online'
                 ? 'Database: Online'
                 : dbStatus === 'offline'
