@@ -142,7 +142,7 @@ const Home = () => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="space-y-2">
-              <div className="text-4xl font-bold text-primary">5</div>
+              <div className="text-4xl font-bold text-primary">3</div>
               <div className="text-muted-foreground">พารามิเตอร์หลักที่ติดตาม</div>
             </div>
             <div className="space-y-2">
