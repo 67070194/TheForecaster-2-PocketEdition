@@ -410,7 +410,7 @@ void pmsWakeAndActive(){
   PMS.write(wake,sizeof(wake)); delay(100);
   PMS.write(active,sizeof(active)); delay(800);
 }
-// Ensure PMS is awake and producing frames even if Wiâ€‘Fi is not connected
+// Ensure PMS is awake and producing frames even if Wi-Fi is not connected
 // ตรวจสอบและกระตุ้น PMS7003 เป็นระยะ กรณีไม่มีข้อมูลนานเกินกำหนด
 static void ensurePMSAlive(){
   unsigned long now = millis();
@@ -578,7 +578,7 @@ static void drawFirmwareStatus(const String& status){
   drawCentered(status, 46, 1);
   display.display();
 }
-// ---- UI helpers: Wiâ€‘Fi + Battery icons in top bar ----
+// ---- UI helpers: Wi-Fi + Battery icons in top bar ----
 static int batteryLevelFromVoltage(float vbat){
   if (!isfinite(vbat)) return -1;
   if (vbat >= 3.90f) return 4;
@@ -675,9 +675,9 @@ void topBar(DateTime now, float vbat, bool wifiOK){
   if(now.minute()<10) display.print('0'); display.print(now.minute()); display.print(':');
   if(now.second()<10) display.print('0'); display.print(now.second());
 
-  // Right side: show AP label in AP mode, otherwise Wiâ€‘Fi bars
+  // Right side: show AP label in AP mode, otherwise Wi-Fi bars
   if(runMode == MODE_AP_CONFIG){
-    // Center 'AP' exactly to the Wiâ€‘Fi icon center (cx=95, baseY=8 â†’ centerY=baseY-4)
+    // Center 'AP' exactly to the Wi-Fi icon center (cx=95, baseY=8 -> centerY=baseY-4)
     const int cx = 95;
     const int baseY = 8;
     const int centerY = baseY - 4; // vertical center used by bars/X
@@ -701,8 +701,8 @@ void topBar(DateTime now, float vbat, bool wifiOK){
     display.setCursor(x, y);
     display.print("AP");
   } else {
-    // Wiâ€‘Fi bars placed near battery on the right, with a small gap
-    // Battery spans roughly x=109..126, so place Wiâ€‘Fi ending before x~109
+    // Wi-Fi bars placed near battery on the right, with a small gap
+    // Battery spans roughly x=109..126, so place Wi-Fi ending before x~109
     drawWifiIcon(95, 8, wifiOK);
   }
 
@@ -1254,14 +1254,14 @@ void setup(){
   // Seed RNG for MQTT backoff jitter
   randomSeed((uint32_t)micros() ^ (uint32_t)mac);
 
-  // Load Wiâ€‘Fi credentials from NVS (if any)
+  // Load Wi-Fi credentials from NVS (if any)
   prefs.begin("wifi", true);
   wifiSsid = prefs.getString("ssid", "");
   wifiPass = prefs.getString("pass", "");
   prefs.end();
 
 #if defined(ARDUINO_ARCH_ESP32)
-  // Wiâ€‘Fi event logging (debug only)
+  // Wi-Fi event logging (debug only)
   WiFi.onEvent(onWiFiEvent);
 #endif
 
@@ -1353,7 +1353,7 @@ void loop(){
   }
   btnWasDown = btnDown;
 
-  // Keep the screen ON while showing Wiâ€‘Fi connect/fail overlays
+  // Keep the screen ON while showing Wi-Fi connect/fail overlays
   if(screenOn && millis()>screenOffAt){
     if(connectingOverlay || failOverlay){
       // Extend a bit to prevent auto-off during overlays
@@ -1427,7 +1427,7 @@ void loop(){
     }
   }
 
-  // PMS keep-alive (works regardless of Wiâ€‘Fi/AP)
+  // PMS keep-alive (works regardless of Wi-Fi/AP)
   ensurePMSAlive();
 
   // PMS read -> update UI
