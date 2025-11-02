@@ -1,0 +1,26 @@
+{
+  "name": "The Forecaster 2 [Pocket Edition]",
+  "short_name": "Forecaster2",
+  "description": "Real-time IoT environmental monitoring dashboard",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fefefe",
+  "theme_color": "#fefefe",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "placeholder.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "placeholder.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "productivity"],
+  "lang": "th"
+}
