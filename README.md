@@ -1,5 +1,7 @@
 # The Forecaster 2 - Pocket Edition
 
+**Physical Computing Project 2025 - IT KMITL**
+
 An IoT Environmental Monitoring System for real-time air quality and environmental parameter tracking using ESP32-S3 microcontroller, Node.js backend, and React dashboard.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -7,9 +9,12 @@ An IoT Environmental Monitoring System for real-time air quality and environment
 ![Node](https://img.shields.io/badge/node-20.x-green.svg)
 ![React](https://img.shields.io/badge/react-18.3.1-blue.svg)
 
+![The Forecaster 2 - Pocket Edition](TFCT_2.jpg)
+
 ## Table of Contents
 
 - [Overview](#overview)
+- [Demo Video](#demo-video)
 - [Key Features](#key-features)
 - [System Architecture](#system-architecture)
 - [Core Principles](#core-principles)
@@ -35,6 +40,10 @@ An IoT Environmental Monitoring System for real-time air quality and environment
 
 **The Forecaster 2 - Pocket Edition** is a complete end-to-end IoT solution for monitoring environmental conditions. It combines custom ESP32-S3 hardware with multiple sensors, a scalable backend infrastructure, and a modern web dashboard to provide real-time and historical environmental data visualization.
 
+### บทคัดย่อ (Abstract - Thai)
+
+โปรเจกต์ The Forecaster 2 Pocket Edition เป็นการพัฒนาระบบ IoT เพื่ออ่านค่าต่างๆ ในสภาพแวดล้อมแบบเรียลไทม์และนำไปใช้คำนวณดัชนีคุณภาพอากาศ (AQI) ตามมาตรฐาน EPA โดยจะแสดงค่าที่วัดได้บน Web Dashboard (React) ที่เชื่อมต่อผ่านระบบคลาวด์และบนตัวหน้าจอ OLED บนเครื่อง (7 โหมด) โดยค่าที่ทำการวัดคือ อุณหภูมิ, ความชื้น, ความดันบรรยากาศและฝุ่นละออง (PM1, PM2.5, PM10)
+
 ### What It Does
 
 - Measures temperature, humidity, atmospheric pressure, and particulate matter (PM1, PM2.5, PM10)
@@ -45,6 +54,16 @@ An IoT Environmental Monitoring System for real-time air quality and environment
 - Visualizes real-time and historical data in a responsive web dashboard
 - Supports Over-The-Air (OTA) firmware updates via HTTP
 - Provides device control through MQTT commands (RTC sync, sampling interval adjustment)
+
+---
+
+## Demo Video
+
+🎥 **Watch the project demonstration:**
+
+[![Demo Video](https://img.youtube.com/vi/Bj-BzpwSIdQ/maxresdefault.jpg)](https://youtu.be/Bj-BzpwSIdQ)
+
+**[▶️ Click here to watch on YouTube](https://youtu.be/Bj-BzpwSIdQ)**
 
 ---
 
